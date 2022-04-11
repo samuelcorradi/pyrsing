@@ -5,4 +5,4 @@ src/pyrsing.egg-info/
 .DS_Store
 .python-version
 src/pyrsing/__pycache__/
-tests/_dev_test.py
+tests/*
