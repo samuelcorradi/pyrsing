@@ -1,10 +1,8 @@
 import json
-#from pyrsing.sql import parser
+from pyrsing.sql import parser
 import sys 
 
 if __name__=="__main__":
-    sys.path.insert(0, '/Users/samuelcorradi/Desktop/programas_python/pyrsing/src')
-    from pyrsing.sql import parser
     sql = """
     -- teste
     -- Some comment.
