@@ -100,22 +100,6 @@ def parse_exp_parts(exp:str):
                 parts[i] = p.replace(g['group_id'], g['group'])
     return parts
 
-    for i, p in enumerate(parts):
-        pass
-
-
-    # reg = r",(?![^\(]*[\)])"
-    # reg = r',\n*(?=(?:[^()]*\([^()]*\))*[^()]*$)'
-    reg = r",(?=(?:[^\"']*[\"'][^\"']*[\"'])*[^\"']*$)"
-    #reg = r",(?![^\(\)\"\']*\\\))"
-    #reg = r",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
-    exp = exp.strip().replace('(', "\"%OPEN_P%").replace(')', "%CLOSE_P\"")
-    print("Removendo os parenteses:\n--------------------------")
-    print(exp)
-    match = re.split(reg, exp)#, flags=re.MULTILINE)
-    parts = [x.replace("\"%OPEN_P%", '(').replace("%CLOSE_P\"", ')') for x in match]
-    return parts
-
 def split_exp_from_part(part:str):
     reg = r"((SELECT )|(\*)|(\[[^\]]+\])|(\'[^\']*\')|([a-zA-Z0-9]+\(.*\))|\((.*)\)|([\=\+\-])|([^\s\=\+\-]*))(?:\s+)?"
     match = re.findall(reg, part.strip())
