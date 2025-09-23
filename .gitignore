@@ -1,0 +1,13 @@
+pyproject.toml
+setup.cfg
+dist/
+src/pyrsing.egg-info/
+.DS_Store
+.python-version
+_temp/
+__pycache__
+*.code-workspace
+.vscode
+.devcontainer
+setup.py
+tests/
