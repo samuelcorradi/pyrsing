@@ -12,19 +12,11 @@ class Grammar:
         self.literal_buffer = ''
 
     def _literal_buffer_flush(self, stack:list):
-        if self.literal_buffer:
+        if self.literal_buffer and stack:
             stack[-1].childrens.append(self.literal_buffer)
             self.literal_buffer = ''
 
-    @staticmethod
-    def find_or_in_stack(stack:list)->Or:
-        for i, val in enumerate(stack):
-            if isinstance(val, Or):
-                return val
-        return None
-
     def _parse_rule(self, rule_str:str, root:Token=None):
-        print(rule_str)
         i=0
         if root is None:
             root = Token()
@@ -38,13 +30,12 @@ class Grammar:
                 stack[-1].negation = True
             elif char == '|':
                 self._literal_buffer_flush(stack)
-                or_token = Grammar.find_or_in_stack(stack)
-                if not or_token:
+                if not isinstance(stack[-1], Or):
                     or_token = Or()
                     root_for_option = Token()
-                    root_for_option.childrens = root.childrens
+                    root_for_option.childrens = stack[-1].childrens
                     or_token.childrens.append(root_for_option)
-                    root.childrens = [or_token]
+                    stack[-1].childrens = [or_token]
                     stack.append(or_token)
                 tk = Token()
                 tk.parent = or_token
@@ -52,16 +43,14 @@ class Grammar:
                 or_token.childrens.append(tk)
             # groups
             elif char in '[(':
-                print(i)
                 self._literal_buffer_flush(stack)
+                tk = stack[-1]
                 grp=Group()
-                opt_token, ii = self._parse_rule(rule_str[i+1:], root=grp)
-                print(opt_token, ii)
+                grp, ii = self._parse_rule(rule_str[i+1:], root=grp)
                 i += ii
-                #tk = stack[-1]
-                root.childrens.append(grp)
+                tk.childrens.append(grp)
                 if char=='[':
-                    opt_token.optional = True
+                    grp.optional = True
             # close group
             elif char in ')]':
                 if i<len(rule_str)-1 and rule_str[i+1] in '+*':
@@ -71,27 +60,19 @@ class Grammar:
                     i+=1
                 i+=1
                 break
-                #self._literal_buffer_flush(stack)
-                #stack.pop()
             elif char in '<':
                 new_token = None
                 self._literal_buffer_flush(stack)
                 if char=='<':
                     match = re.match(r'<([^>]+)>', rule_str[i:])
                     token_name = match.group(1)
-                    # Simplificação: ignorando a sintaxe '!' por enquanto
-                    if ':' in token_name: token_name = token_name.split(':')[0]
-                    new_token, aa=self._parse_rule(self.grammar[token_name])
+                    new_token, _=self._parse_rule(self.grammar[token_name])
                     i += match.end() - 1
                 if new_token:
                     stack[-1].childrens.append(new_token)
             else:
                 self.literal_buffer += char
             i += 1
-        # adiciona o que sobrou no buffer
+        # adds what's left in the buffer
         self._literal_buffer_flush(stack)
-        if len(root.childrens)==1 \
-            and (isinstance(root.childrens[0], Group) \
-                 or isinstance(root.childrens[0], Or)):
-            return root.childrens[0], i
         return root, i
