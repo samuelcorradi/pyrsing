@@ -16,6 +16,19 @@ class Grammar:
             stack[-1].childrens.append(self.literal_buffer)
             self.literal_buffer = ''
 
+    def _find_or_in_stack(self, stack:list):
+        """
+        Procura o token Or na pilha.
+        Se encontrar um Group antes, retorna None.
+        Retorna None se não encontrar.
+        """
+        for tk in reversed(stack):
+            if isinstance(tk, Group):
+                return None
+            elif isinstance(tk, Or):
+                return tk
+        return None
+
     def _parse_rule(self, rule_str:str, root:Token=None):
         i=0
         if root is None:
@@ -30,7 +43,8 @@ class Grammar:
                 stack[-1].negation = True
             elif char == '|':
                 self._literal_buffer_flush(stack)
-                if not isinstance(stack[-1], Or):
+                or_token = self._find_or_in_stack(stack)
+                if not or_token:
                     or_token = Or()
                     root_for_option = Token()
                     root_for_option.childrens = stack[-1].childrens
