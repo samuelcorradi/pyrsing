@@ -16,6 +16,20 @@ class Grammar:
             stack[-1].childrens.append(self.literal_buffer)
             self.literal_buffer = ''
 
+    def _parse_rule_name(self, rule_str:str)->tuple[str,str]:
+        """
+        Extracts the token name and alias (if any) from a rule.
+        Returns a tuple (name, alias).
+        Throws an exception if the syntax is incorrect.
+        """
+        mask = r'<([^>:]+)(:[^>]+)?>'
+        match = re.match(mask, rule_str)
+        if not match:
+            raise Exception(f"Syntax error on rule '{rule_str}'.")
+        token_name = match.group(1)
+        alias = match.group(2)
+        return token_name, alias
+
     def _find_or_in_stack(self, stack:list):
         """
         Procura o token Or na pilha.
@@ -39,7 +53,7 @@ class Grammar:
             # or
             if char=='!':
                 if i>0:
-                    raise Exception("Somente na posicao 0 que pode ser indicada a negacao.")
+                    raise Exception("Negation can only be indicated at position 0.")
                 stack[-1].negation = True
             elif char == '|':
                 self._literal_buffer_flush(stack)
@@ -78,9 +92,15 @@ class Grammar:
                 new_token = None
                 self._literal_buffer_flush(stack)
                 if char=='<':
-                    match = re.match(r'<([^>]+)>', rule_str[i:])
-                    token_name = match.group(1)
-                    new_token, _=self._parse_rule(self.grammar[token_name])
+                    mask = r'<[^>]+>'
+                    match = re.match(mask, rule_str[i:])
+                    if not match:
+                        raise Exception(f"Syntax error on rule '{rule_str[i:]}' at position {i}.")
+                    token_name, alias = self._parse_rule_name(match.group(0))
+                    if token_name not in self.grammar:
+                        raise Exception(f"Token '{token_name}' not found in grammar.")
+                    new_token, _ = self._parse_rule(self.grammar[token_name])
+                    new_token.name = alias[1:] if alias else token_name
                     i += match.end() - 1
                 if new_token:
                     stack[-1].childrens.append(new_token)

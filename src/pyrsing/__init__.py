@@ -14,7 +14,7 @@ class Token():
 
     def __str__(self):
         return str(self.__class__) \
-            + f"{' NAME' + self.name if self.name else ''}" \
+            + f"{' NAME ' + self.name if self.name else ''}" \
             + f"{' OPTIONAL' if self.optional else ''}" \
             + f"{' REPEATER' if self.repeat else ''}" \
             + f"{' NEGATION' if self.negation else ''}"
@@ -44,4 +44,4 @@ class Token():
         tree = "\n".join(line)
         if level>0:
             return tree
-        print(tree)
+        print(tree + "\n")
