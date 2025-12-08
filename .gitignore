@@ -3,8 +3,10 @@ src/pyrsing.egg-info/
 .DS_Store
 .python-version
 _temp/
+.temp/
 __pycache__
 *.code-workspace
 .vscode
 .devcontainer
 tests/
+.venv/
