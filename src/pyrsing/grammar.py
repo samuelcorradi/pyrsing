@@ -1,13 +1,15 @@
 import re
+from typing import Optional
 from pyrsing.tokens import Or, Group
 from pyrsing import Token
+from pyrsing.tokens import Literal
 
 class Grammar:
     """
     """
     def __init__(self, grammar:dict):
         self.grammar = grammar
-        self.root = Token()
+        self.root = Literal()
         self.rules = dict()
         self.literal_buffer = ''
 
@@ -43,10 +45,10 @@ class Grammar:
                 return tk
         return None
 
-    def _parse_rule(self, rule_str:str, root:Token=None):
+    def _parse_rule(self, rule_str:str, root:Optional[Token]=None):
         i=0
         if root is None:
-            root = Token()
+            root = Literal()
         stack = [root]
         while(i<len(rule_str)):
             char = rule_str[i]
@@ -60,12 +62,12 @@ class Grammar:
                 or_token = self._find_or_in_stack(stack)
                 if not or_token:
                     or_token = Or()
-                    root_for_option = Token()
+                    root_for_option = Literal()
                     root_for_option.childrens = stack[-1].childrens
                     or_token.childrens.append(root_for_option)
                     stack[-1].childrens = [or_token]
                     stack.append(or_token)
-                tk = Token()
+                tk = Literal()
                 tk.parent = or_token
                 stack.append(tk)
                 or_token.childrens.append(tk)

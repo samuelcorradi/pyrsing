@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 void = [" ", "\t", "\n", "\r\n"]
 
-class Token():
+class Token(ABC):
 
     def __init__(self):
         self.name:str = ''
