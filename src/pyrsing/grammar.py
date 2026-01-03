@@ -1,21 +1,24 @@
 import re
 from typing import Optional
-from pyrsing.tokens import Or, Group
-from pyrsing import Token
-from pyrsing.tokens import Literal
+from pyrsing.ast import (
+          ASTNode
+        , RootNode
+        , TerminalNode
+        , AlternativeNode
+        , GroupNode
+    )
 
 class Grammar:
     """
     """
-    def __init__(self, grammar:dict):
-        self.grammar = grammar
-        self.root = Literal()
-        self.rules = dict()
+    def __init__(self, rules:dict):
+        self.rules = rules
+        self.root = RootNode()
         self.literal_buffer = ''
 
     def _literal_buffer_flush(self, stack:list):
         if self.literal_buffer and stack:
-            stack[-1].childrens.append(self.literal_buffer)
+            stack[-1].children.append(self.literal_buffer)
             self.literal_buffer = ''
 
     def _parse_rule_name(self, rule_str:str)->tuple[str,str]:
@@ -34,59 +37,66 @@ class Grammar:
 
     def _find_or_in_stack(self, stack:list):
         """
-        Procura o token Or na pilha.
-        Se encontrar um Group antes, retorna None.
+        Procura o node AlternativeNode na pilha.
+        Se encontrar um GroupNode antes, retorna None.
         Retorna None se não encontrar.
         """
         for tk in reversed(stack):
-            if isinstance(tk, Group):
+            if isinstance(tk, GroupNode):
                 return None
-            elif isinstance(tk, Or):
+            elif isinstance(tk, AlternativeNode):
                 return tk
         return None
 
-    def _parse_rule(self, rule_str:str, root:Optional[Token]=None):
+    def ast_builder(self)->ASTNode:
+        rule_str = self.rules.get('__root__', '')
+        if not rule_str:
+            raise Exception("Root rule '__root__' not found in grammar.")
+        self.root, _ = self._parse_rule(rule_str, self.root)
+        return self.root
+
+    def _parse_rule(self, rule_str:str, parent_node:Optional[ASTNode]=None):
         i=0
-        if root is None:
-            root = Literal()
-        stack = [root]
+        if parent_node is None:
+            parent_node = TerminalNode()
+        stack = [parent_node]
         while(i<len(rule_str)):
             char = rule_str[i]
             # or
             if char=='!':
                 if i>0:
                     raise Exception("Negation can only be indicated at position 0.")
-                stack[-1].negation = True
+                stack[-1].is_negation = True
             elif char == '|':
                 self._literal_buffer_flush(stack)
                 or_token = self._find_or_in_stack(stack)
                 if not or_token:
-                    or_token = Or()
-                    root_for_option = Literal()
-                    root_for_option.childrens = stack[-1].childrens
-                    or_token.childrens.append(root_for_option)
-                    stack[-1].childrens = [or_token]
+                    or_token = AlternativeNode()
+                    root_for_option = TerminalNode()
+                    root_for_option.children = stack[-1].children
+                    or_token.children.append(root_for_option)
+                    stack[-1].children = [or_token]
                     stack.append(or_token)
-                tk = Literal()
+                tk = TerminalNode()
                 tk.parent = or_token
                 stack.append(tk)
-                or_token.childrens.append(tk)
+                or_token.children.append(tk)
             # groups
             elif char in '[(':
                 self._literal_buffer_flush(stack)
                 tk = stack[-1]
-                grp=Group()
-                grp, ii = self._parse_rule(rule_str[i+1:], root=grp)
+                grp=GroupNode()
+                grp, ii = self._parse_rule(rule_str[i+1:], parent_node=grp)
                 i += ii
-                tk.childrens.append(grp)
+                tk.children.append(grp)
                 if char=='[':
-                    grp.optional = True
+                    grp.is_optional = True
             # close group
             elif char in ')]':
                 if i<len(rule_str)-1 and rule_str[i+1] in '+*':
-                    root.repeat=True
+                    parent_node.is_repeat=True
                     if char=='*':
-                        root.optional = True
+                        parent_node.is_optional = True
                     i+=1
                 i+=1
                 break
@@ -99,16 +109,16 @@ class Grammar:
                     if not match:
                         raise Exception(f"Syntax error on rule '{rule_str[i:]}' at position {i}.")
                     token_name, alias = self._parse_rule_name(match.group(0))
-                    if token_name not in self.grammar:
-                        raise Exception(f"Token '{token_name}' not found in grammar.")
-                    new_token, _ = self._parse_rule(self.grammar[token_name])
+                    if token_name not in self.rules:
+                        raise Exception(f"Production rule '{token_name}' not found in grammar.")
+                    new_token, _ = self._parse_rule(self.rules[token_name])
                     new_token.name = alias[1:] if alias else token_name
                     i += match.end() - 1
                 if new_token:
-                    stack[-1].childrens.append(new_token)
+                    stack[-1].children.append(new_token)
             else:
                 self.literal_buffer += char
             i += 1
         # adds what's left in the buffer
         self._literal_buffer_flush(stack)
-        return root, i
+        return parent_node, i
