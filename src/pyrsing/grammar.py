@@ -1,19 +1,36 @@
 import re
 from typing import Optional
-from pyrsing import ASTNode, ASTRoot
-from pyrsing.nodes import SequenceNode, OrNode, GroupNode
+from pyrsing import ASTNode
+from pyrsing.nodes import SequenceNode, OrNode, GroupNode, TerminalNode, AnyNode
 
 class Grammar:
     """
     """
     def __init__(self, rules:dict):
         self.rules = rules
-        self.root = ASTRoot()
+        self.root = SequenceNode(name='__root__')
         self.literal_buffer = ''
 
     def _literal_buffer_flush(self, stack:list):
         if self.literal_buffer and stack:
-            stack[-1].children.append(self.literal_buffer)
+            scaped = False
+            for char in self.literal_buffer:
+                if scaped:
+                    scaped = False
+                    lit_node = TerminalNode(char)
+                    stack[-1].children.append(lit_node)
+                    continue
+                elif char == '\\':
+                    scaped = True
+                    continue
+                elif char == '.':
+                    lit_node = AnyNode()
+                    stack[-1].children.append(lit_node)
+                elif char in '[]()|!<>':
+                    raise Exception(f"Literal buffer contains special character '{char}'. Use escape '\\{char}' to include it as literal.")
+                else:
+                    lit_node = TerminalNode(char)
+                    stack[-1].children.append(lit_node)
             self.literal_buffer = ''
 
     def _parse_rule_name(self, rule_str:str)->tuple[str,str]:
@@ -68,6 +85,7 @@ class Grammar:
                 if not or_token:
                     or_token = OrNode()
                     root_for_option = SequenceNode()
+                    root_for_option.parent = or_token
                     root_for_option.children = stack[-1].children
                     or_token.children.append(root_for_option)
                     stack[-1].children = [or_token]
