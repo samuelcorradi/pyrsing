@@ -56,29 +56,79 @@ class Input():
 class ASTNode(ABC):
 
     def __init__(self):
-        self.name:str = ''
+        self._name:str = ''
         self.children:list = []
         self.parent:ASTNode = None
-        self.is_optional:bool = False
+        self._is_optional:bool = False
         self.is_negation:bool = False
         self.is_repeat:bool = False
+        self._current = None
+
+    def __iter__(self):
+        """Initialize iterator for depth-first traversal."""
+        #self._iter_stack = [self]  # Stack for traversal
+        self._iter_stack = list(reversed(self.children))  # Start with children reversed for stack order
+        self._current = None
+        return self
+
+    def __next__(self):
+        if not self._iter_stack:
+            raise StopIteration
+        node = self._iter_stack.pop()
+        self._current = node
+        if type(node) is str:
+            return node
+        # Add children in reverse order to simulate stack behavior
+        for child in reversed(node.children):
+            # if isinstance(child, ASTNode):
+            #     self._iter_stack.append(child)
+            self._iter_stack.append(child)
+        return node
+
+    @property
+    def current(self):
+        """Returns the current item during iteration, or None if not iterating."""
+        if self._current is None:
+            return self.children[0] if self.children else None
+        return self._current
 
     def __str__(self):
-        return str(self.__class__) \
-            + f"{' NAME ' + self.name if self.name else ''}" \
+        return f"<{self.__class__.__name__}>" \
             + f"{' OPTIONAL' if self.is_optional else ''}" \
             + f"{' REPEATER' if self.is_repeat else ''}" \
             + f"{' NEGATION' if self.is_negation else ''}"
     
-    def parse(self, input):
-        from pyrsing import Input # avoid circular import
-        if type(input) is not Input:
-            raise Exception("input must be an instance of Input or str.")
-        return self.__parse(input)
-    
     @abstractmethod
-    def _parse(self, input):
+    def parse(self, input:Input):
         pass
+    
+    @property
+    def name(self)->str:
+        """
+        """
+        return self.__class__.__name__ if not self._name else self._name
+    
+    @name.setter
+    def name(self, val:str):
+        self._name = val
+
+    @property
+    def is_optional(self, up:bool=False):
+        """
+        """
+        if self._is_optional:
+            return True
+        elif up:
+            parent = self.parent
+            while parent:
+                if parent.is_optional():
+                    return True
+                parent = parent.parent
+        return False
+    
+    @is_optional.setter
+    def is_optional(self, val:bool):
+        self._is_optional = val
 
     def print_tree(self, level=0, prefix="", is_last=True):
         """
@@ -106,17 +156,3 @@ class ASTNode(ABC):
         if level>0:
             return tree
         print(tree + "\n")
-
-class ASTRoot(ASTNode):
-    """
-    """
-    def __init__(self):
-        super().__init__()
-        self.name:str = '__root__'
-        self.parent:ASTNode = None
-        self.is_optional:bool = False
-        self.is_negation:bool = False
-        self.is_repeat:bool = False
-
-    def _parse(self, input):
-        return None
