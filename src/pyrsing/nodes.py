@@ -1,11 +1,19 @@
 from pyrsing import ASTNode
 
-class SequenceNode(ASTNode):
+class AnyNode(ASTNode):
     """
     ()
     """
     def __init__(self):
         super().__init__()
+        
+    def parse(self, input:Input):
+        try:
+            inp_char = input.next()
+            print(inp_char, '.')
+        except StopIteration:
+            raise NotMatchException(f"Expected any character in grammar, got end of input at position '{input.get_pos()}'.")
+        return
 
 class SequenceNode(ASTNode):
     """
