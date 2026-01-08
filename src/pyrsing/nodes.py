@@ -29,7 +29,19 @@ class OrNode(ASTNode):
     """
     def __init__(self):
         super().__init__()
-        self.name:str = '__or__'
 
-    def _parse(self, input):
-        pass
+    def parse(self, input:Input):
+        inital_pos = input.get_pos()
+        for item in self.children:
+            if isinstance(item, ASTNode):
+                print(inital_pos)
+                print("ITEM", item, item.parent)
+                try:
+                    item.parse(input)
+                    print("Sucesso")
+                    return
+                except NotMatchException as e:
+                    input.rewind(inital_pos)
+                    print(e)
+                    continue
+        raise NoAlternativesException("No alternatives matched.")
