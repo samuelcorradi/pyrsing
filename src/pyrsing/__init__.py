@@ -21,6 +21,9 @@ class Input():
             raise StopIteration # done iterating.
     next = __next__ # python2.x compatibility.
 
+    def rewind(self, i:int=0):
+        self.__i = i
+
     def get_pos(self):
         return self.__i
 
@@ -41,10 +44,10 @@ class Input():
         """
         return self.input_str[0 if (self.__i-1)<0 else self.__i-1]
     
-    def eof(self)->bool:
+    def hasNext(self)->bool:
         """
         """
-        return not self.__i<len(self.input_str)
+        return self.__i<len(self.input_str)
     
     def parse(self, ast_node:ASTNode):
         self.rewind(0)
