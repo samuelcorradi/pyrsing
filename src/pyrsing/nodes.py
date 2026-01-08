@@ -6,10 +6,31 @@ class SequenceNode(ASTNode):
     """
     def __init__(self):
         super().__init__()
-        self.name:str = '__sequence__'
 
-    def _parse(self, input):
-        pass
+class TerminalNode(ASTNode):
+    """
+    ()
+    """
+    def __init__(self, char:str):
+        super().__init__()
+        self.char = char
+
+    def __str__(self):
+        return f"<{self.__class__.__name__}> '{self.char}'" \
+            + f"{' OPTIONAL' if self.is_optional else ''}" \
+            + f"{' REPEATER' if self.is_repeat else ''}" \
+            + f"{' NEGATION' if self.is_negation else ''}"
+
+    def parse(self, input:Input):
+        try:
+            inp_char = input.next() # input.peek()
+        except StopIteration:
+            raise NotMatchException(f"Expected '{self.char}' in grammar, got end of input at position '{input.get_pos()}'.")
+        print(inp_char, self.char)
+        if inp_char == self.char:
+            return
+        else:
+            raise NotMatchException(f"Expected '{self.char}' in grammar, got '{inp_char}' from input at position '{input.get_pos()}'.")
 
 class GroupNode(ASTNode):
     """
