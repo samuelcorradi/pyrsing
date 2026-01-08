@@ -46,16 +46,9 @@ class Input():
         """
         return not self.__i<len(self.input_str)
     
-    def parse(self, root_node:ASTRoot)->Parser:
-        return Parser(self, root_node)
-
-class Parser():
-    
-    def __init__(self
-        , input:Input
-        , root_node:ASTRoot):
-        self.input = input
-        self.root_node = root_node
+    def parse(self, ast_node:ASTNode):
+        self.rewind(0)
+        return ast_node.parse(self)
 
 class ASTNode(ABC):
 
