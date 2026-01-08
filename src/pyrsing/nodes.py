@@ -7,6 +7,27 @@ class SequenceNode(ASTNode):
     def __init__(self):
         super().__init__()
 
+class SequenceNode(ASTNode):
+    """
+    ()
+    """
+    def __init__(self, name:str=''):
+        super().__init__()
+        self._name = name
+
+    def parse(self, input:Input):
+        for item in self.children:
+            if isinstance(item, ASTNode):
+                item.parse(input)
+        if self.is_negation:
+            raise NotMatchException("Negation matched when it should not have.")
+
+    def __str__(self):
+        return f"<{self.name + ":" if self.name else ''}{self.__class__.__name__}>" \
+            + f"{' OPTIONAL' if self.is_optional else ''}" \
+            + f"{' REPEATER' if self.is_repeat else ''}" \
+            + f"{' NEGATION' if self.is_negation else ''}"
+
 class TerminalNode(ASTNode):
     """
     ()
