@@ -1,24 +1,36 @@
 import re
 from typing import Optional
-from pyrsing.ast import (
-          ASTNode
-        , RootNode
-        , TerminalNode
-        , AlternativeNode
-        , GroupNode
-    )
+from pyrsing import ASTNode
+from pyrsing.nodes import SequenceNode, OrNode, GroupNode, TerminalNode, AnyNode
 
 class Grammar:
     """
     """
     def __init__(self, rules:dict):
         self.rules = rules
-        self.root = RootNode()
+        self.root = SequenceNode(name='__root__')
         self.literal_buffer = ''
 
     def _literal_buffer_flush(self, stack:list):
         if self.literal_buffer and stack:
-            stack[-1].children.append(self.literal_buffer)
+            scaped = False
+            for char in self.literal_buffer:
+                if scaped:
+                    scaped = False
+                    lit_node = TerminalNode(char)
+                    stack[-1].children.append(lit_node)
+                    continue
+                elif char == '\\':
+                    scaped = True
+                    continue
+                elif char == '.':
+                    lit_node = AnyNode()
+                    stack[-1].children.append(lit_node)
+                elif char in '[]()|!<>':
+                    raise Exception(f"Literal buffer contains special character '{char}'. Use escape '\\{char}' to include it as literal.")
+                else:
+                    lit_node = TerminalNode(char)
+                    stack[-1].children.append(lit_node)
             self.literal_buffer = ''
 
     def _parse_rule_name(self, rule_str:str)->tuple[str,str]:
@@ -37,14 +49,14 @@ class Grammar:
 
     def _find_or_in_stack(self, stack:list):
         """
-        Procura o node AlternativeNode na pilha.
+        Procura o node OrNode na pilha.
         Se encontrar um GroupNode antes, retorna None.
         Retorna None se não encontrar.
         """
         for tk in reversed(stack):
             if isinstance(tk, GroupNode):
                 return None
-            elif isinstance(tk, AlternativeNode):
+            elif isinstance(tk, OrNode):
                 return tk
         return None
 
@@ -58,7 +70,7 @@ class Grammar:
     def _parse_rule(self, rule_str:str, parent_node:Optional[ASTNode]=None):
         i=0
         if parent_node is None:
-            parent_node = TerminalNode()
+            parent_node = SequenceNode()
         stack = [parent_node]
         while(i<len(rule_str)):
             char = rule_str[i]
@@ -71,13 +83,14 @@ class Grammar:
                 self._literal_buffer_flush(stack)
                 or_token = self._find_or_in_stack(stack)
                 if not or_token:
-                    or_token = AlternativeNode()
-                    root_for_option = TerminalNode()
+                    or_token = OrNode()
+                    root_for_option = SequenceNode()
+                    root_for_option.parent = or_token
                     root_for_option.children = stack[-1].children
                     or_token.children.append(root_for_option)
                     stack[-1].children = [or_token]
                     stack.append(or_token)
-                tk = TerminalNode()
+                tk = SequenceNode()
                 tk.parent = or_token
                 stack.append(tk)
                 or_token.children.append(tk)

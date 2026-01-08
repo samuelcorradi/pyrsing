@@ -9,4 +9,6 @@ __pycache__
 .vscode
 .devcontainer
 tests/
-.venv/
+.venv*/
+build/
+.local/
