@@ -17,10 +17,11 @@ class GroupNode(ASTNode):
     """
     def __init__(self):
         super().__init__()
-        self.name:str = '__group__'
 
-    def _parse(self, input):
-        pass
+    def parse(self, input:Input):
+        for item in self.children:
+            if isinstance(item, ASTNode):
+                item.parse(input)
 
 class OrNode(ASTNode):
     """
