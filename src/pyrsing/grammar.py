@@ -1,14 +1,14 @@
 import re
 from typing import Optional
 from pyrsing import ASTNode
-from pyrsing.nodes import SequenceNode, OrNode, GroupNode, TerminalNode, AnyNode
+from pyrsing.nodes import SequenceNode, ProductionRuleNode, OrNode, GroupNode, TerminalNode, AnyNode
 
 class Grammar:
     """
     """
     def __init__(self, rules:dict):
         self.rules = rules
-        self.root = SequenceNode(name='__root__')
+        self.root:ProductionRuleNode = None
         self.literal_buffer = ''
 
     def _literal_buffer_flush(self, stack:list):
@@ -33,20 +33,6 @@ class Grammar:
                     stack[-1].children.append(lit_node)
             self.literal_buffer = ''
 
-    def _parse_rule_name(self, rule_str:str)->tuple[str,str]:
-        """
-        Extracts the token name and alias (if any) from a rule.
-        Returns a tuple (name, alias).
-        Throws an exception if the syntax is incorrect.
-        """
-        mask = r'<([^>:]+)(:[^>]+)?>'
-        match = re.match(mask, rule_str)
-        if not match:
-            raise Exception(f"Syntax error on rule '{rule_str}'.")
-        token_name = match.group(1)
-        alias = match.group(2)
-        return token_name, alias
-
     def _find_or_in_stack(self, stack:list):
         """
         Procura o node OrNode na pilha.
@@ -64,7 +50,10 @@ class Grammar:
         rule_str = self.rules.get('__root__', '')
         if not rule_str:
             raise Exception("Root rule '__root__' not found in grammar.")
-        self.root, _ = self._parse_rule(rule_str, self.root)
+        
+        self.root = ProductionRuleNode('__root__')
+        seq, _ = self._parse_rule(rule_str, self.root)
+        # self.root.children = seq.children
         return self.root
 
     def _parse_rule(self, rule_str:str, parent_node:Optional[ASTNode]=None):
@@ -121,11 +110,11 @@ class Grammar:
                     match = re.match(mask, rule_str[i:])
                     if not match:
                         raise Exception(f"Syntax error on rule '{rule_str[i:]}' at position {i}.")
-                    token_name, alias = self._parse_rule_name(match.group(0))
+                    token_name, alias = ProductionRuleNode.parse_rule_name(match.group(0))
                     if token_name not in self.rules:
                         raise Exception(f"Production rule '{token_name}' not found in grammar.")
-                    new_token, _ = self._parse_rule(self.rules[token_name])
-                    new_token.name = alias[1:] if alias else token_name
+                    new_token = ProductionRuleNode(alias[1:] if alias else token_name)
+                    seq, _ = self._parse_rule(self.rules[token_name], new_token)
                     i += match.end() - 1
                 if new_token:
                     stack[-1].children.append(new_token)
