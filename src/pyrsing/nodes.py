@@ -1,4 +1,6 @@
+import re
 from pyrsing import ASTNode, Input
+from pyrsing.token import Token, TokenSequence, RuleNode
 from pyrsing.exception import (
     NotMatchException,
     NoAlternativesException
@@ -17,6 +19,8 @@ class AnyNode(ASTNode):
             print(inp_char, '.')
         except StopIteration:
             raise NotMatchException(f"Expected any character in grammar, got end of input at position '{input.get_pos()}'.")
+        return Token(inp_char)
+
 
 class ProductionRuleNode(ASTNode):
     """
@@ -64,16 +68,19 @@ class SequenceNode(ASTNode):
     """
     ()
     """
-    def __init__(self, name:str=''):
+    def __init__(self):
         super().__init__()
-        self._name = name
 
     def parse(self, input:Input):
+        results = []
         for item in self.children:
             if isinstance(item, ASTNode):
-                item.parse(input)
+                res = item.parse(input)
+                results.append(res)
         if self.is_negation:
             raise NotMatchException("Negation matched when it should not have.")
+        # senao, eh uma sequencia/grupo
+        return TokenSequence(results)
 
     def __str__(self):
         return f"<{self.name + ":" if self.name else ''}{self.__class__.__name__}>" \
@@ -102,7 +109,7 @@ class TerminalNode(ASTNode):
             raise NotMatchException(f"Expected '{self.char}' in grammar, got end of input at position '{input.get_pos()}'.")
         print(inp_char, self.char)
         if inp_char == self.char:
-            return
+            return Token(inp_char)
         else:
             raise NotMatchException(f"Expected '{self.char}' in grammar, got '{inp_char}' from input at position '{input.get_pos()}'.")
 
@@ -114,9 +121,12 @@ class GroupNode(ASTNode):
         super().__init__()
 
     def parse(self, input:Input):
+        results = []
         for item in self.children:
             if isinstance(item, ASTNode):
-                item.parse(input)
+                res = item.parse(input)
+                results.append(res)
+        return TokenSequence(results)
 
 class OrNode(ASTNode):
     """
@@ -132,9 +142,8 @@ class OrNode(ASTNode):
                 print(inital_pos)
                 print("ITEM", item, item.parent)
                 try:
-                    item.parse(input)
-                    print("Sucesso")
-                    return
+                    res = item.parse(input)
+                    return res
                 except NotMatchException as e:
                     input.rewind(inital_pos)
                     print(e)
