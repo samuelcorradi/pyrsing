@@ -59,7 +59,7 @@ class ProductionRuleNode(ASTNode):
     def __str__(self):
         return f"<{self.__class__.__name__}:{self.name}>" \
             + f"{' OPTIONAL' if self.is_optional else ''}" \
-            + f"{' REPEATER' if self.is_repeat else ''}" + f"({str(self.num_repeat)})" if self.num_repeat else '' \
+            + f"{' REPEATER' if self.is_repeat else ''}" + (f"({str(self.num_repeat)})" if self.num_repeat else '') \
             + f"{' NEGATION' if self.is_negation else ''}"
 
 class SequenceNode(ASTNode):
@@ -84,7 +84,7 @@ class SequenceNode(ASTNode):
     def __str__(self):
         return f"<{self.name + ":" if self.name else ''}{self.__class__.__name__}>" \
             + f"{' OPTIONAL' if self.is_optional else ''}" \
-            + f"{' REPEATER' if self.is_repeat else ''}" + f"({str(self.num_repeat)})" if self.num_repeat else '' \
+            + f"{' REPEATER' if self.is_repeat else ''}" + (f"({str(self.num_repeat)})" if self.num_repeat else '') \
             + f"{' NEGATION' if self.is_negation else ''}"
 
 class TerminalNode(ASTNode):
@@ -98,7 +98,7 @@ class TerminalNode(ASTNode):
     def __str__(self):
         return f"<{self.__class__.__name__}> '{self.char}'" \
             + f"{' OPTIONAL' if self.is_optional else ''}" \
-            + f"{' REPEATER' if self.is_repeat else ''}" + f"({str(self.num_repeat)})" if self.num_repeat else '' \
+            + f"{' REPEATER' if self.is_repeat else ''}" + (f"({str(self.num_repeat)})" if self.num_repeat else '') \
             + f"{' NEGATION' if self.is_negation else ''}"
 
     def _parse_element(self, input:Input):
@@ -133,7 +133,7 @@ class GroupNode(ASTNode):
     def __str__(self):
         return f"<{self.__class__.__name__}>" \
             + f"{' OPTIONAL' if self.is_optional else ''}" \
-            + f"{' REPEATER' if self.is_repeat else ''}" \
+            + f"{' REPEATER' if self.is_repeat else ''}" + (f"({str(self.num_repeat)})" if self.num_repeat else '') \
             + f"{' NEGATION' if self.is_negation else ''}"
 
 class OrNode(ASTNode):
