@@ -1,6 +1,7 @@
 import re
 from typing import Optional
 from pyrsing import ASTNode
+from pyrsing.exception import GrammarSyntaxException
 from pyrsing.nodes import (
         SequenceNode,
         ProductionRuleNode,
@@ -100,13 +101,14 @@ class Grammar:
             elif char in '{':
                 self._literal_buffer_flush(stack)
                 m = re.findall(r'\{([0-9]+)\}', rule_str[i:])
-                if m:
-                    last_node = stack[-1].children[-1]
-                    num_rep:str = m[0]
-                    i+=len(num_rep)+1
-                    last_node.num_repeat = int(num_rep)
-                    last_node.is_repeat = True
-                    last_node.is_optional = False
+                if not m:
+                    raise GrammarSyntaxException("Error in grammar definition syntax. The character '{' was found, and the expected format is {<number of repetitions>}.")
+                last_node = stack[-1].children[-1]
+                num_rep:str = m[0]
+                i+=len(num_rep)+1
+                last_node.num_repeat = int(num_rep)
+                last_node.is_repeat = True
+                last_node.is_optional = False
             # groups
             elif char in '[(':
                 self._literal_buffer_flush(stack)

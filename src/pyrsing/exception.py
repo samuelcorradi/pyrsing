@@ -3,3 +3,6 @@ class NotMatchException(Exception):
 
 class NoAlternativesException(Exception):
     pass
+
+class GrammarSyntaxException(Exception):
+    pass
