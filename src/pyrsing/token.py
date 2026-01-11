@@ -2,7 +2,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Union, Dict
 
-
 @dataclass
 class Token:
     """
@@ -23,9 +22,28 @@ class TokenSequence:
     def to_primitive(self) -> List:
         result = []
         buffer = ""
+        flat_children = []
+        # Flattening se necessário: Se children contém listas aninhadas devido a repetições
         for c in self.children:
+             if isinstance(c, list): flat_children.extend(c)
+             else: flat_children.append(c)
+        for c in flat_children:
             if isinstance(c, Token):
                 buffer += c.to_primitive()
+            
+            elif isinstance(c, TokenSequence):
+                # Se for uma sequencia puramente de tokens, tenta unificar
+                primitivo = c.to_primitive()
+                # Se o resultado for uma lista só de strings, e estavamos bufferizando strings
+                # isso é complexo. Geralmente token sequences viram listas.
+                # Para simplificar terminais repetidos (a+), eles retornam TokenSequence([Token(a), Token(a)...])
+                
+                # Se temos algo no buffer, salva antes de processar o nó complexo
+                if buffer:
+                    result.append(buffer)
+                    buffer = ""
+                # Adiciona o resultado complexo
+                result.append(primitivo)
             else:
                 if buffer:
                     result.append(buffer)

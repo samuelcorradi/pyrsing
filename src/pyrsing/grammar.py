@@ -1,7 +1,14 @@
 import re
 from typing import Optional
 from pyrsing import ASTNode
-from pyrsing.nodes import SequenceNode, ProductionRuleNode, OrNode, GroupNode, TerminalNode, AnyNode
+from pyrsing.nodes import (
+        SequenceNode,
+        ProductionRuleNode,
+        OrNode,
+        GroupNode,
+        TerminalNode,
+        AnyNode
+    )
 
 class Grammar:
     """
@@ -26,7 +33,7 @@ class Grammar:
                 elif char == '.':
                     lit_node = AnyNode()
                     stack[-1].children.append(lit_node)
-                elif char in '[]()|!<>':
+                elif char in '[]()|!<>{}':
                     raise Exception(f"Literal buffer contains special character '{char}'. Use escape '\\{char}' to include it as literal.")
                 else:
                     lit_node = TerminalNode(char)
@@ -50,7 +57,6 @@ class Grammar:
         rule_str = self.rules.get('__root__', '')
         if not rule_str:
             raise Exception("Root rule '__root__' not found in grammar.")
-        
         self.root = ProductionRuleNode('__root__')
         seq, _ = self._parse_rule(rule_str, self.root)
         # self.root.children = seq.children
@@ -63,11 +69,18 @@ class Grammar:
         stack = [parent_node]
         while(i<len(rule_str)):
             char = rule_str[i]
-            # or
+            # negation
             if char=='!':
                 if i>0:
                     raise Exception("Negation can only be indicated at position 0.")
                 stack[-1].is_negation = True
+            # repetition
+            elif char in ['*', '+']:
+                self._literal_buffer_flush(stack)
+                last_node = stack[-1].children[-1]
+                last_node.is_repeat = True
+                last_node.is_optional = True if char=='*' else False
+            # or
             elif char == '|':
                 self._literal_buffer_flush(stack)
                 or_token = self._find_or_in_stack(stack)
@@ -83,6 +96,17 @@ class Grammar:
                 tk.parent = or_token
                 stack.append(tk)
                 or_token.children.append(tk)
+            # repetition indicating quantity
+            elif char in '{':
+                self._literal_buffer_flush(stack)
+                m = re.findall(r'\{([0-9]+)\}', rule_str[i:])
+                if m:
+                    last_node = stack[-1].children[-1]
+                    num_rep:str = m[0]
+                    i+=len(num_rep)+1
+                    last_node.num_repeat = int(num_rep)
+                    last_node.is_repeat = True
+                    last_node.is_optional = False
             # groups
             elif char in '[(':
                 self._literal_buffer_flush(stack)
@@ -95,13 +119,9 @@ class Grammar:
                     grp.is_optional = True
             # close group
             elif char in ')]':
-                if i<len(rule_str)-1 and rule_str[i+1] in '+*':
-                    parent_node.is_repeat=True
-                    if char=='*':
-                        parent_node.is_optional = True
-                    i+=1
                 i+=1
                 break
+            # role
             elif char in '<':
                 new_token = None
                 self._literal_buffer_flush(stack)

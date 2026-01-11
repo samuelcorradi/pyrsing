@@ -1,5 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
+from pyrsing.token import TokenSequence
+from pyrsing.exception import NotMatchException
 
 WHITESPACE_CHARS = [" ", "\t", "\n", "\r\n"]
 
@@ -23,6 +25,9 @@ class Input():
 
     def rewind(self, i:int=0):
         self.__i = i
+
+    def set_pos(self, i:int):
+        self.__i=i
 
     def get_pos(self):
         return self.__i
@@ -62,12 +67,14 @@ class ASTNode(ABC):
         self._is_optional:bool = False
         self.is_negation:bool = False
         self.is_repeat:bool = False
+        self.num_repeat:int = 0
         self._current = None
 
     def __iter__(self):
-        """Initialize iterator for depth-first traversal."""
-        #self._iter_stack = [self]  # Stack for traversal
-        self._iter_stack = list(reversed(self.children))  # Start with children reversed for stack order
+        """
+        Initialize iterator for depth-first traversal.
+        """
+        self._iter_stack = list(reversed(self.children))  # start with children reversed for stack order
         self._current = None
         return self
 
@@ -78,16 +85,16 @@ class ASTNode(ABC):
         self._current = node
         if type(node) is str:
             return node
-        # Add children in reverse order to simulate stack behavior
+        # add children in reverse order to simulate stack behavior
         for child in reversed(node.children):
-            # if isinstance(child, ASTNode):
-            #     self._iter_stack.append(child)
             self._iter_stack.append(child)
         return node
 
     @property
     def current(self):
-        """Returns the current item during iteration, or None if not iterating."""
+        """
+        Returns the current item during iteration, or None if not iterating.
+        """
         if self._current is None:
             return self.children[0] if self.children else None
         return self._current
@@ -98,8 +105,45 @@ class ASTNode(ABC):
             + f"{' REPEATER' if self.is_repeat else ''}" \
             + f"{' NEGATION' if self.is_negation else ''}"
     
-    @abstractmethod
     def parse(self, input:Input):
+        start_pos = input.get_pos()
+        try:
+            if self.is_repeat:
+                return self._parse_loop(input)
+            return self._parse_element(input)
+        except Exception as e:
+            if self.is_optional:
+                input.set_pos(start_pos)
+                return None 
+            raise e
+
+    def _parse_loop(self, input:Input):
+        num_rep:int = 0
+        result=[]
+        while True:
+            input_pos:int = input.get_pos()
+            try:
+                item=self._parse_element(input)
+                if isinstance(item, list):
+                     result.extend(item)
+                else:
+                     result.append(item)
+                num_rep+=1
+                if self.num_repeat>0 and num_rep==self.num_repeat:
+                    break
+            except Exception as e:
+                input.set_pos(input_pos)
+                if self.num_repeat and num_rep<self.num_repeat:
+                    if self.is_optional:
+                        return result
+                    raise NotMatchException(f"Did not achieve the expected number of repetitions. {self.num_repeat} repetitions were expected, but only {num_rep} were performed.")
+                if num_rep==0 and not self.is_optional:
+                    raise e
+                break
+        return TokenSequence(result)
+
+    @abstractmethod
+    def _parse_element(self, input:Input):
         pass
     
     @property
@@ -113,7 +157,7 @@ class ASTNode(ABC):
         self._name = val
 
     @property
-    def is_optional(self, up:bool=False):
+    def is_optional(self, up:bool=False)->bool:
         """
         """
         if self._is_optional:
@@ -121,7 +165,7 @@ class ASTNode(ABC):
         elif up:
             parent = self.parent
             while parent:
-                if parent.is_optional():
+                if parent.is_optional(up):
                     return True
                 parent = parent.parent
         return False
@@ -156,3 +200,4 @@ class ASTNode(ABC):
         if level>0:
             return tree
         print(tree + "\n")
+
