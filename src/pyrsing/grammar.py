@@ -22,23 +22,33 @@ class Grammar:
     def _literal_buffer_flush(self, stack:list):
         if self.literal_buffer and stack:
             scaped = False
+            parent = stack[-1]
             for char in self.literal_buffer:
                 if scaped:
                     scaped = False
                     lit_node = TerminalNode(char)
-                    stack[-1].children.append(lit_node)
+                    lit_node.parent = parent
+                    parent.children.append(lit_node)
                     continue
                 elif char == '\\':
                     scaped = True
                     continue
+                elif char == '!':
+                    print(char, scaped)
+                    if not scaped:
+                        raise Exception("Negation can only be indicated at position 0. Use escape '\\!' to include it as literal.")
+                    lit_node = TerminalNode(char)
+                    lit_node.parent = parent
+                    parent.children.append(lit_node)
                 elif char == '.':
                     lit_node = AnyNode()
-                    stack[-1].children.append(lit_node)
+                    parent.children.append(lit_node)
                 elif char in '[]()|!<>{}':
                     raise Exception(f"Literal buffer contains special character '{char}'. Use escape '\\{char}' to include it as literal.")
                 else:
                     lit_node = TerminalNode(char)
-                    stack[-1].children.append(lit_node)
+                    lit_node.parent = parent
+                    parent.children.append(lit_node)
             self.literal_buffer = ''
 
     def _find_or_in_stack(self, stack:list):
@@ -71,10 +81,8 @@ class Grammar:
         while(i<len(rule_str)):
             char = rule_str[i]
             # negation
-            if char=='!':
-                if i>0:
-                    raise Exception("Negation can only be indicated at position 0.")
-                stack[-1].is_negation = True
+            if char=='!' and i==0:
+                    stack[-1].is_negation = True
             # repetition
             elif char in ['*', '+']:
                 self._literal_buffer_flush(stack)
