@@ -21,13 +21,13 @@ class AnyNode(ASTNode):
             raise NotMatchException(f"Expected any character in grammar, got end of input at position '{input.get_pos()}'.")
         return Token(inp_char)
 
-class ProductionRuleNode(ASTNode):
+class SequenceNode(ASTNode):
     """
-    Production rule com nome: <rule_name>
+    ()
     """
-    def __init__(self, name: str):
+    def __init__(self, name:str=None):
         super().__init__()
-        self.name = name
+        self._name = name
 
     @staticmethod
     def parse_rule_name(rule_str:str)->tuple[str,str]:
@@ -43,32 +43,7 @@ class ProductionRuleNode(ASTNode):
         token_name = match.group(1)
         alias = match.group(2)
         return token_name, alias
-
-    def _parse_element(self, input: Input):
-        results = []
-        for item in self.children:
-            if isinstance(item, ASTNode):
-                res = item.parse(input)
-                results.append(res)
-        # if is executed, but it's a negation of the rule, it throws an error
-        if self.is_negation:
-            raise NotMatchException("Negation matched when it should not have.")
-        # otherwise, it is a rule node
-        return RuleNode(self.name, results)
-
-    def __str__(self):
-        return f"<{self.__class__.__name__}:{self.name}>" \
-            + f"{' OPTIONAL' if self.is_optional else ''}" \
-            + f"{' REPEATER' if self.is_repeat else ''}" + (f"({str(self.num_repeat)})" if self.num_repeat else '') \
-            + f"{' NEGATION' if self.is_negation else ''}"
-
-class SequenceNode(ASTNode):
-    """
-    ()
-    """
-    def __init__(self):
-        super().__init__()
-
+    
     def _parse_element(self, input:Input):
         results = []
         for item in self.children:
@@ -82,7 +57,8 @@ class SequenceNode(ASTNode):
         return TokenSequence(results)
 
     def __str__(self):
-        return f"<{self.name + ":" if self.name else ''}{self.__class__.__name__}>" \
+        name = self._name+':' if self._name else ''
+        return f"<{name}{self.__class__.__name__}>" \
             + f"{' OPTIONAL' if self.is_optional else ''}" \
             + f"{' REPEATER' if self.is_repeat else ''}" + (f"({str(self.num_repeat)})" if self.num_repeat else '') \
             + f"{' NEGATION' if self.is_negation else ''}"
@@ -110,31 +86,6 @@ class TerminalNode(ASTNode):
             return Token(inp_char)
         else:
             raise NotMatchException(f"Expected '{self.char}' in grammar, got '{inp_char}' from input at position '{input.get_pos()}'.")
-
-class GroupNode(ASTNode):
-    """
-    ()
-    """
-    def __init__(self):
-        super().__init__()
-
-    def _parse_element(self, input:Input):
-        results = []
-        for item in self.children:
-            if isinstance(item, ASTNode):
-                res = item.parse(input)
-                results.append(res)
-        # if is executed, but it's a negation of the rule, it throws an error
-        if self.is_negation:
-            raise NotMatchException("Negation matched when it should not have.")
-        # otherwise, it is a sequence
-        return TokenSequence(results)
-
-    def __str__(self):
-        return f"<{self.__class__.__name__}>" \
-            + f"{' OPTIONAL' if self.is_optional else ''}" \
-            + f"{' REPEATER' if self.is_repeat else ''}" + (f"({str(self.num_repeat)})" if self.num_repeat else '') \
-            + f"{' NEGATION' if self.is_negation else ''}"
 
 class OrNode(ASTNode):
     """

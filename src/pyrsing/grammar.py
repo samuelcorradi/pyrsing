@@ -4,9 +4,7 @@ from pyrsing import ASTNode
 from pyrsing.exception import GrammarSyntaxException
 from pyrsing.nodes import (
         SequenceNode,
-        ProductionRuleNode,
         OrNode,
-        GroupNode,
         TerminalNode,
         AnyNode
     )
@@ -16,7 +14,7 @@ class Grammar:
     """
     def __init__(self, rules:dict):
         self.rules = rules
-        self.root:ProductionRuleNode = None
+        self.root:SequenceNode = SequenceNode('__root__')
         self.literal_buffer = ''
 
     def _literal_buffer_flush(self, stack:list):
@@ -54,11 +52,11 @@ class Grammar:
     def _find_or_in_stack(self, stack:list):
         """
         Procura o node OrNode na pilha.
-        Se encontrar um GroupNode antes, retorna None.
+        Se encontrar um SequenceNode antes, retorna None.
         Retorna None se não encontrar.
         """
         for tk in reversed(stack):
-            if isinstance(tk, GroupNode):
+            if isinstance(tk, SequenceNode):
                 return None
             elif isinstance(tk, OrNode):
                 return tk
@@ -68,7 +66,6 @@ class Grammar:
         rule_str = self.rules.get('__root__', '')
         if not rule_str:
             raise Exception("Root rule '__root__' not found in grammar.")
-        self.root = ProductionRuleNode('__root__')
         seq, _ = self._parse_rule(rule_str, self.root)
         # self.root.children = seq.children
         return self.root
@@ -76,7 +73,7 @@ class Grammar:
     def _parse_rule(self, rule_str:str, parent_node:Optional[ASTNode]=None):
         i=0
         if parent_node is None:
-            parent_node = SequenceNode()
+            parent_node = self.root
         stack = [parent_node]
         while(i<len(rule_str)):
             char = rule_str[i]
@@ -121,7 +118,7 @@ class Grammar:
             elif char in '[(':
                 self._literal_buffer_flush(stack)
                 tk = stack[-1]
-                grp=GroupNode()
+                grp=SequenceNode()
                 grp, ii = self._parse_rule(rule_str[i+1:], parent_node=grp)
                 i += ii
                 tk.children.append(grp)
@@ -140,10 +137,10 @@ class Grammar:
                     match = re.match(mask, rule_str[i:])
                     if not match:
                         raise Exception(f"Syntax error on rule '{rule_str[i:]}' at position {i}.")
-                    token_name, alias = ProductionRuleNode.parse_rule_name(match.group(0))
+                    token_name, alias = SequenceNode.parse_rule_name(match.group(0))
                     if token_name not in self.rules:
                         raise Exception(f"Production rule '{token_name}' not found in grammar.")
-                    new_token = ProductionRuleNode(alias[1:] if alias else token_name)
+                    new_token = SequenceNode(alias[1:] if alias else token_name)
                     seq, _ = self._parse_rule(self.rules[token_name], new_token)
                     i += match.end() - 1
                 if new_token:
