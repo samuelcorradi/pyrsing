@@ -1,7 +1,7 @@
 from __future__ import annotations
 import re
 from pyrsing import ASTNode, Input
-from pyrsing.token import Token, TokenSequence, RuleNode
+from pyrsing.token import Token, TokenSequence
 from pyrsing.exception import (
     NotMatchException,
     NoAlternativesException
@@ -47,12 +47,28 @@ class SequenceNode(ASTNode):
     def _parse_element(self, input:Input):
         results = []
         for item in self.children:
-            if isinstance(item, ASTNode):
+            if isinstance(item, TerminalNode):
+                char = input.peek()
+                error:bool = False
+                try:
+                    print(item.char, self.is_negation)
+                    _ = item.parse(input)
+                    # if is executed, but it's a negation of the rule, it throws an error
+                    if self.is_negation:
+                        error = True
+                except NotMatchException as e:
+                    # if is executed, and it's a negation of the rule, it's ok
+                    if not self.is_negation:
+                        error = True
+                if error:
+                    if self.is_negation:
+                        raise NotMatchException(f"Expected negation of '{item.char}' in grammar, got '{char}' from input at position '{input.get_pos()}'.")
+                    else:
+                        raise NotMatchException(f"Expected '{item.char}' in grammar, got '{char}' from input at position '{input.get_pos()}'.")
+                results.append(Token(char))
+            elif isinstance(item, ASTNode):
                 res = item.parse(input)
                 results.append(res)
-        # if is executed, but it's a negation of the rule, it throws an error
-        if self.is_negation:
-            raise NotMatchException("Negation matched when it should not have.")
         # otherwise, it is a sequence
         return TokenSequence(results)
 
