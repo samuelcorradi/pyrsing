@@ -46,10 +46,10 @@ class SequenceNode(ASTNode):
     
     def _parse_element(self, input:Input):
         results = []
+        error:bool = False
         for item in self.children:
             if isinstance(item, TerminalNode):
                 char = input.peek()
-                error:bool = False
                 try:
                     _ = item.parse(input)
                     # if is executed, but it's a negation of the rule, it throws an error
@@ -59,16 +59,18 @@ class SequenceNode(ASTNode):
                     # if is executed, and it's a negation of the rule, it's ok
                     if not self.is_negation:
                         error = True
-                if error:
-                    if self.is_negation:
-                        raise NotMatchException(f"Expected negation of '{item.char}' in grammar, got '{char}' from input at position '{input.get_pos()}'.")
-                    else:
-                        raise NotMatchException(f"Expected '{item.char}' in grammar, got '{char}' from input at position '{input.get_pos()}'.")
                 results.append(Token(char))
             elif isinstance(item, ASTNode):
-                res = item.parse(input)
-                results.append(res)
-        # otherwise, it is a sequence
+                try:
+                    res = item.parse(input)
+                    results.append(res)
+                    if self.is_negation:
+                        error = True
+                except NotMatchException:
+                    if not self.is_negation:
+                        error = True
+        if error:
+            raise NotMatchException(f"Negation sequence matched, which is not allowed.")
         return TokenSequence(name=self._name, children=results)
 
     def __str__(self):
