@@ -70,7 +70,7 @@ class SequenceNode(ASTNode):
                 res = item.parse(input)
                 results.append(res)
         # otherwise, it is a sequence
-        return TokenSequence(results)
+        return TokenSequence(name=self._name, children=results)
 
     def __str__(self):
         name = self._name+':' if self._name else ''
