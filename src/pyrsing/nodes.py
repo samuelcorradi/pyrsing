@@ -51,7 +51,6 @@ class SequenceNode(ASTNode):
                 char = input.peek()
                 error:bool = False
                 try:
-                    print(item.char, self.is_negation)
                     _ = item.parse(input)
                     # if is executed, but it's a negation of the rule, it throws an error
                     if self.is_negation:
