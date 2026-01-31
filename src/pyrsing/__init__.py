@@ -125,9 +125,9 @@ class ASTNode(ABC):
             try:
                 item=self._parse_element(input)
                 if isinstance(item, list):
-                     result.extend(item)
+                    result.extend(item)
                 else:
-                     result.append(item)
+                    result.append(item)
                 num_rep+=1
                 if self.num_repeat>0 and num_rep==self.num_repeat:
                     break
@@ -140,7 +140,7 @@ class ASTNode(ABC):
                 if num_rep==0 and not self.is_optional:
                     raise e
                 break
-        return TokenSequence(result)
+        return TokenSequence(name=self._name, children=result)
 
     @abstractmethod
     def _parse_element(self, input:Input):

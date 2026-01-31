@@ -46,10 +46,7 @@ class TokenSequence:
                 # Adiciona o resultado complexo
                 result.append(primitivo)
             else:
-                if buffer:
-                    result.append(buffer)
-                    buffer = ""
-                result.append(c.to_primitive())
+                raise ValueError("Unknown ParseNode type")
         if buffer:
             result.append(buffer)
         if self.name:
