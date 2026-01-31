@@ -111,10 +111,10 @@ class OrNode(ASTNode):
 
     def _parse_element(self, input:Input):
         inital_pos = input.get_pos()
-        for item in self.children:
-            if isinstance(item, ASTNode):
+        for option in self.children:
+            if isinstance(option, ASTNode):
                 try:
-                    res = item.parse(input)
+                    res = option.parse(input)
                     return res
                 except NotMatchException as e:
                     input.rewind(inital_pos)
