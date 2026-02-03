@@ -124,7 +124,7 @@ class OrNode(ASTNode):
                 try:
                     res = option.parse(input)
                     return res
-                except NotMatchException as e:
+                except Exception as e:
                     input.rewind(inital_pos)
                     continue
         raise NoAlternativesException("No alternatives matched.")
