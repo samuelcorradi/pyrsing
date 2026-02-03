@@ -31,20 +31,16 @@ class TokenSequence:
         for c in flat_children:
             if isinstance(c, Token):
                 buffer += c.to_primitive()
-            
             elif isinstance(c, TokenSequence):
-                # Se for uma sequencia puramente de tokens, tenta unificar
                 primitivo = c.to_primitive()
-                # Se o resultado for uma lista só de strings, e estavamos bufferizando strings
-                # isso é complexo. Geralmente token sequences viram listas.
-                # Para simplificar terminais repetidos (a+), eles retornam TokenSequence([Token(a), Token(a)...])
-                
-                # Se temos algo no buffer, salva antes de processar o nó complexo
-                if buffer:
-                    result.append(buffer)
-                    buffer = ""
-                # Adiciona o resultado complexo
-                result.append(primitivo)
+                # if the initial result is a list of strings, concatenate it to the buffer
+                if isinstance(primitivo, list) and all(isinstance(x, str) for x in primitivo):
+                    buffer += ''.join(primitivo)
+                else:
+                    if buffer:
+                        result.append(buffer)
+                        buffer = ""
+                    result.extend(primitivo) if isinstance(primitivo, list) else result.append(primitivo)
             else:
                 raise ValueError("Unknown ParseNode type")
         if buffer:
