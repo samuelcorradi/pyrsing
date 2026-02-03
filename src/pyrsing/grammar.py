@@ -136,17 +136,27 @@ class Grammar:
             elif char in '<':
                 new_token = None
                 self._literal_buffer_flush(stack)
-                if char=='<':
-                    mask = r'<[^>]+>'
-                    match = re.match(mask, rule_str[i:])
-                    if not match:
-                        raise Exception(f"Syntax error on rule '{rule_str[i:]}' at position {i}.")
-                    token_name, alias = SequenceNode.parse_rule_name(match.group(0))
-                    if token_name not in self.rules:
-                        raise Exception(f"Production rule '{token_name}' not found in grammar.")
-                    new_token = SequenceNode(alias[1:] if alias else token_name)
-                    seq, _ = self._parse_rule(self.rules[token_name], new_token)
-                    i += match.end() - 1
+                
+                mask = r'<[^>]+(\:[^>]+)?>'
+                match = re.match(mask, rule_str[i:])
+                if not match:
+                    raise Exception(f"Syntax error on rule '{rule_str[i:]}' at position {i}.")
+                print(match.group(0))
+                token_name, alias = SequenceNode.parse_rule_name(match.group(0))
+                print(token_name, alias)
+                if token_name not in self.rules:
+                    raise Exception(f"Production rule '{token_name}' not found in grammar.")
+                # Only set the SequenceNode name when an alias is provided.
+                # If alias is present but empty ("<rule:>"), use the original token_name as grouping key.
+                if alias is None:
+                    node_name = None
+                else:
+                    alias_name = alias[1:]
+                    node_name = token_name if alias_name == '' else alias_name
+                print(node_name)
+                new_token = SequenceNode(node_name)
+                seq, _ = self._parse_rule(self.rules[token_name], new_token)
+                i += match.end() - 1
                 if new_token:
                     stack[-1].children.append(new_token)
             else:

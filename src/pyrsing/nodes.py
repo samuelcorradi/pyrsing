@@ -36,7 +36,8 @@ class SequenceNode(ASTNode):
         Returns a tuple (name, alias).
         Throws an exception if the syntax is incorrect.
         """
-        mask = r'<([^>:]+)(:[^>]+)?>'
+        # allow an empty alias (e.g. <rule:>) so caller can signal grouping with no custom alias
+        mask = r'<([^>:]+)(:[^>]*)?>'
         match = re.match(mask, rule_str)
         if not match:
             raise Exception(f"Syntax error on rule '{rule_str}'.")
