@@ -17,14 +17,14 @@ class TokenSequence:
     """
     Composite/Grouping Node: agregação de elementos (ex: grupos com ())
     """
-    name: Optional[str]  # nome da regra
+    name: Optional[str]  # rule name or alias
     children: List[ParseNode]
     
     def to_primitive(self) -> List:
         result = []
         buffer = ""
         flat_children = []
-        # Flattening se necessário: Se children contém listas aninhadas devido a repetições
+        # flattening if children contain nested lists due to repetitions
         for c in self.children:
              if isinstance(c, list): flat_children.extend(c)
              else: flat_children.append(c)

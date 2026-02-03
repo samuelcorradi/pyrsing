@@ -57,8 +57,6 @@ class Grammar:
         Retorna None se não encontrar.
         """
         for tk in reversed(stack):
-            #if isinstance(tk, SequenceNode):
-            #    return None
             if isinstance(tk, OrNode):
                 return tk
         return None
@@ -136,7 +134,6 @@ class Grammar:
             elif char in '<':
                 new_token = None
                 self._literal_buffer_flush(stack)
-                
                 mask = r'<[^>]+(\:[^>]+)?>'
                 match = re.match(mask, rule_str[i:])
                 if not match:
@@ -146,14 +143,12 @@ class Grammar:
                 print(token_name, alias)
                 if token_name not in self.rules:
                     raise Exception(f"Production rule '{token_name}' not found in grammar.")
-                # Only set the SequenceNode name when an alias is provided.
-                # If alias is present but empty ("<rule:>"), use the original token_name as grouping key.
-                if alias is None:
-                    node_name = None
-                else:
+                node_name = None
+                # only set the SequenceNode name when an alias is provided.
+                if alias is not None:
                     alias_name = alias[1:]
+                    # if alias is present but empty ("<rule:>"), use the original token_name as grouping key
                     node_name = token_name if alias_name == '' else alias_name
-                print(node_name)
                 new_token = SequenceNode(node_name)
                 seq, _ = self._parse_rule(self.rules[token_name], new_token)
                 i += match.end() - 1
