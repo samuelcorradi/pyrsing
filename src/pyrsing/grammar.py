@@ -16,6 +16,7 @@ class Grammar:
         self.rules = rules
         self.root:SequenceNode = SequenceNode('__root__')
         self.literal_buffer = ''
+        self.scaped = False
 
     def _literal_buffer_flush(self, stack:list):
         if self.literal_buffer and stack:
@@ -77,8 +78,11 @@ class Grammar:
         stack = [parent_node]
         while(i<len(rule_str)):
             char = rule_str[i]
+            if self.scaped:
+                self.scaped = False
+                self.literal_buffer += char
             # negation
-            if char=='!' and i==0:
+            elif char=='!' and i==0:
                     stack[-1].is_negation = True
             # repetition
             elif char in ['*', '+']:
@@ -146,6 +150,8 @@ class Grammar:
                 if new_token:
                     stack[-1].children.append(new_token)
             else:
+                if char=="\\":
+                    self.scaped = True
                 self.literal_buffer += char
             i += 1
         # adds what's left in the buffer
