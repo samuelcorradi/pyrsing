@@ -87,7 +87,7 @@ class Grammar:
             # repetition
             elif char in ['*', '+']:
                 self._literal_buffer_flush(stack)
-                last_node = stack[-1].children[-1]
+                last_node = stack[-1].children[-1] if len(stack[-1].children) else stack[-1]
                 last_node.is_repeat = True
                 last_node.is_optional = True if char=='*' else False
             # or
