@@ -140,7 +140,7 @@ class ASTNode(ABC):
                 if num_rep==0 and not self.is_optional:
                     raise e
                 break
-        return TokenSequence(name=self._name, children=result)
+        return TokenSequence(name=None, children=result)
 
     @abstractmethod
     def _parse_element(self, input:Input):
