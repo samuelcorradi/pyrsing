@@ -56,9 +56,9 @@ class Grammar:
         Retorna None se não encontrar.
         """
         for tk in reversed(stack):
-            if isinstance(tk, SequenceNode):
-                return None
-            elif isinstance(tk, OrNode):
+            #if isinstance(tk, SequenceNode):
+            #    return None
+            if isinstance(tk, OrNode):
                 return tk
         return None
 
