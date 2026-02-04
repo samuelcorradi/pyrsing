@@ -33,7 +33,6 @@ class Grammar:
                     scaped = True
                     continue
                 elif char == '!':
-                    print(char, scaped)
                     if not scaped:
                         raise Exception("Negation can only be indicated at position 0. Use escape '\\!' to include it as literal.")
                     lit_node = TerminalNode(char)
@@ -138,9 +137,7 @@ class Grammar:
                 match = re.match(mask, rule_str[i:])
                 if not match:
                     raise Exception(f"Syntax error on rule '{rule_str[i:]}' at position {i}.")
-                print(match.group(0))
                 token_name, alias = SequenceNode.parse_rule_name(match.group(0))
-                print(token_name, alias)
                 if token_name not in self.rules:
                     raise Exception(f"Production rule '{token_name}' not found in grammar.")
                 node_name = None
