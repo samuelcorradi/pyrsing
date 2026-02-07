@@ -102,7 +102,7 @@ class TerminalNode(ASTNode):
 
     def _parse_element(self, input:Input):
         try:
-            inp_char = input.next() # input.peek()
+            inp_char = next(input)
         except StopIteration:
             raise NotMatchException(f"Expected '{self.char}' in grammar, got end of input at position '{input.get_pos()}'.")
         if inp_char == self.char:
