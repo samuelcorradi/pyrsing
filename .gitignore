@@ -8,7 +8,6 @@ __pycache__
 *.code-workspace
 .vscode
 .devcontainer
-tests/
 .venv*/
 build/
 .local/
