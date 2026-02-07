@@ -106,6 +106,10 @@ class ASTNode(ABC):
             + f"{' NEGATION' if self.is_negation else ''}"
     
     def parse(self, input:Input):
+        input.rewind(0)
+        return self._parse(input)
+
+    def _parse(self, input:Input):
         start_pos = input.get_pos()
         try:
             if self.is_repeat:
