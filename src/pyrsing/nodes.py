@@ -75,7 +75,7 @@ class SequenceNode(ASTNode):
                 raise NotMatchException(f"Negation sequence matched, which is not allowed.")
             else:
                 if isinstance(error, TerminalNode):
-                    raise NotMatchException(f"Expected '{char}' in sequence, but it did not match with '{error.char}' at position '{input.get_pos()+1}'.")
+                    raise NotMatchException(f"Expected '{error.char}' in sequence, but it did not match at position '{input.get_pos()}'.")
                 raise NotMatchException(f"Sequence did not match. Error was: {error}")
         return TokenSequence(name=self._name, children=results)
 
