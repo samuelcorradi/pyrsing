@@ -18,3 +18,10 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.optional-dependencies]
+# extra dependencies that are only used for development (e.g., tests).
+# they are installed with: pip install .[dev]
+dev = [
+    "pytest==9.0.1"
+]
