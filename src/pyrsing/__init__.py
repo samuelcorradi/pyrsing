@@ -54,6 +54,17 @@ class Input():
         """
         return self.__i<len(self.input_str)
     
+    def is_eol(self)->bool:
+        """
+        Indicates if the end of the input string
+        has been reached. Returns True if the
+        current position is at or beyond the end
+        of the input string, otherwise False.
+        :return: True if end of input is reached, False otherwise.
+        :rtype: bool
+        """
+        return self.__i>=len(self.input_str)
+    
     def parse(self, ast_node:ASTNode):
         self.rewind(0)
         return ast_node.parse(self)
