@@ -52,7 +52,7 @@ class SequenceNode(ASTNode):
             if isinstance(item, TerminalNode):
                 char = input.peek()
                 try:
-                    _ = item.parse(input)
+                    _ = item._parse(input)
                     # if is executed, but it's a negation of the rule, it throws an error
                     if self.is_negation:
                         error = item
@@ -63,7 +63,7 @@ class SequenceNode(ASTNode):
                 results.append(Token(char))
             elif isinstance(item, ASTNode):
                 try:
-                    res = item.parse(input)
+                    res = item._parse(input)
                     results.append(res)
                     if self.is_negation:
                         error = item
@@ -122,7 +122,7 @@ class OrNode(ASTNode):
         for option in self.children:
             if isinstance(option, ASTNode):
                 try:
-                    res = option.parse(input)
+                    res = option._parse(input)
                     return res
                 except Exception as e:
                     input.rewind(inital_pos)
