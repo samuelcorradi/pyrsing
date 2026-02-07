@@ -49,7 +49,8 @@ class SequenceNode(ASTNode):
         results = []
         error:ASTNode = None
         for item in self.children:
-            if isinstance(item, TerminalNode):
+            if isinstance(item, TerminalNode) \
+                and not item.is_repeat:
                 char = input.peek()
                 try:
                     _ = item._parse(input)
@@ -61,6 +62,17 @@ class SequenceNode(ASTNode):
                     if not self.is_negation:
                         error = item
                 results.append(Token(char))
+            elif isinstance(item, TerminalNode):
+                try:
+                    res = item._parse(input)
+                    results.append(res)
+                    # if is executed, but it's a negation of the rule, it throws an error
+                    if self.is_negation:
+                        error = item
+                except NotMatchException as e:
+                    # if is executed, and it's a negation of the rule, it's ok
+                    if not self.is_negation:
+                        error = item
             elif isinstance(item, ASTNode):
                 try:
                     res = item._parse(input)
