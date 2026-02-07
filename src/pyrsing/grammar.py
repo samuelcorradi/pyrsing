@@ -12,8 +12,8 @@ from pyrsing.nodes import (
 class Grammar:
     """
     """
-    def __init__(self, rules:dict):
-        self.rules = rules
+    def __init__(self, rules:Optional[dict]=None):
+        self.rules = rules if rules is not None else {}
         self.root:SequenceNode = SequenceNode('__root__')
         self.literal_buffer = ''
         self.scaped = False
@@ -68,7 +68,9 @@ class Grammar:
         # self.root.children = seq.children
         return self.root
 
-    def _parse_rule(self, rule_str:str, parent_node:Optional[ASTNode]=None):
+    def _parse_rule(self
+        , rule_str:str
+        , parent_node:Optional[ASTNode]=None)->tuple[ASTNode,int]:
         i=0
         if parent_node is None:
             parent_node = self.root
