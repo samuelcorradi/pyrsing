@@ -41,6 +41,8 @@ class TokenSequence:
                         result.append(buffer)
                         buffer = ""
                     result.extend(primitivo) if isinstance(primitivo, list) else result.append(primitivo)
+            elif c is None:
+                continue
             else:
                 raise ValueError("Unknown ParseNode type: " + str(type(c)))
         if buffer:
