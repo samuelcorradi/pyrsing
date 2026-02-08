@@ -6,7 +6,8 @@ from pyrsing.nodes import (
         SequenceNode,
         OrNode,
         TerminalNode,
-        AnyNode
+        AnyNode,
+        RepetitionNode
     )
 
 class Grammar:
@@ -86,9 +87,18 @@ class Grammar:
             # repetition
             elif char in ['*', '+']:
                 self._literal_buffer_flush(stack)
-                last_node = stack[-1].children[-1] if len(stack[-1].children) else stack[-1]
-                last_node.is_repeat = True
-                last_node.is_optional = True if char=='*' else False
+                parent = stack[-1]
+                if not parent.children:
+                     # Attempting to repeat nothing or the sequence itself currently being built?
+                     # Treating as syntax error or ignoring for now.
+                     raise GrammarSyntaxException(f"Repetition '{char}' used without a preceding element.")
+                
+                target_node = parent.children.pop()
+                min_times = 0 if char == '*' else 1
+                rep_node = RepetitionNode(target_node, min_times=min_times)
+                # rep_node.parent = parent
+                parent.children.append(rep_node)
+                
             # or
             elif char == '|':
                 self._literal_buffer_flush(stack)
@@ -111,12 +121,15 @@ class Grammar:
                 m = re.findall(r'\{([0-9]+)\}', rule_str[i:])
                 if not m:
                     raise GrammarSyntaxException("Error in grammar definition syntax. The character '{' was found, and the expected format is {<number of repetitions>}.")
-                last_node = stack[-1].children[-1]
-                num_rep:str = m[0]
-                i+=len(num_rep)+1
-                last_node.num_repeat = int(num_rep)
-                last_node.is_repeat = True
-                last_node.is_optional = False
+                parent = stack[-1]
+                if not parent.children:
+                     raise GrammarSyntaxException(f"Repetition '{{}}' used without a preceding element.")
+                target_node = parent.children.pop()
+                num_rep_val = int(m[0])
+                i += len(m[0])+1
+                # {n} means exactly n times, so min=n, max=n
+                rep_node = RepetitionNode(target_node, min_times=num_rep_val, max_times=num_rep_val)
+                parent.children.append(rep_node)
             # groups
             elif char in '[(':
                 self._literal_buffer_flush(stack)

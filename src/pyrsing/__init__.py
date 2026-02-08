@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from pyrsing.token import TokenSequence
-from pyrsing.exception import NotMatchException
+from pyrsing.exception import NotMatchException, NoAlternativesException
 
 WHITESPACE_CHARS = [" ", "\t", "\n", "\r\n"]
 
@@ -77,8 +77,6 @@ class ASTNode(ABC):
         self.parent:ASTNode = None
         self._is_optional:bool = False
         self.is_negation:bool = False
-        self.is_repeat:bool = False
-        self.num_repeat:int = 0
         self._current = None
 
     def __iter__(self):
@@ -113,7 +111,6 @@ class ASTNode(ABC):
     def __str__(self):
         return f"<{self.__class__.__name__}>" \
             + f"{' OPTIONAL' if self.is_optional else ''}" \
-            + f"{' REPEATER' if self.is_repeat else ''}" \
             + f"{' NEGATION' if self.is_negation else ''}"
     
     def parse(self, input:Input):
@@ -123,39 +120,12 @@ class ASTNode(ABC):
     def _parse(self, input:Input):
         start_pos = input.get_pos()
         try:
-            if self.is_repeat:
-                return self._parse_loop(input)
             return self._parse_element(input)
         except Exception as e:
             if self.is_optional:
                 input.set_pos(start_pos)
                 return None 
             raise e
-
-    def _parse_loop(self, input:Input):
-        num_rep:int = 0
-        result=[]
-        while True:
-            input_pos:int = input.get_pos()
-            try:
-                item=self._parse_element(input)
-                if isinstance(item, list):
-                    result.extend(item)
-                else:
-                    result.append(item)
-                num_rep+=1
-                if self.num_repeat>0 and num_rep==self.num_repeat:
-                    break
-            except Exception as e:
-                input.set_pos(input_pos)
-                if self.num_repeat and num_rep<self.num_repeat:
-                    if self.is_optional:
-                        return result
-                    raise NotMatchException(f"Did not achieve the expected number of repetitions. {self.num_repeat} repetitions were expected, but only {num_rep} were performed.")
-                if num_rep==0 and not self.is_optional:
-                    raise e
-                break
-        return TokenSequence(name=None, children=result)
 
     @abstractmethod
     def _parse_element(self, input:Input):

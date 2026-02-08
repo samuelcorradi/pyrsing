@@ -14,13 +14,14 @@ def test_ast_tree_generation_with_aliases(capsys):
 │       │   ├─ <TerminalNode> 'b'
 │       │   └─ <TerminalNode> ' '
 │       └─ <SequenceNode>
-│           ├─ <SequenceNode> OPTIONAL REPEATER
-│           │   └─ <OrNode>
-│           │       ├─ <SequenceNode>
-│           │       │   ├─ <TerminalNode> 'a'
-│           │       │   └─ <TerminalNode> 'a'
-│           │       └─ <SequenceNode>
-│           │           └─ <TerminalNode> 'z'
+│           ├─ <RepetitionNode> (min:0, max:None)
+│           │   └─ <SequenceNode>
+│           │       └─ <OrNode>
+│           │           ├─ <SequenceNode>
+│           │           │   ├─ <TerminalNode> 'a'
+│           │           │   └─ <TerminalNode> 'a'
+│           │           └─ <SequenceNode>
+│           │               └─ <TerminalNode> 'z'
 │           ├─ <TerminalNode> ' '
 │           ├─ <TerminalNode> 'z'
 │           ├─ <TerminalNode> 'z'
