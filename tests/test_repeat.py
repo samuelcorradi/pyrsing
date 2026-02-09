@@ -3,6 +3,31 @@ from pyrsing.grammar import Grammar
 from pyrsing import Input
 from pyrsing.token import ParseNode
 
+def test_repeat_using_a_internal_with_or_condition():
+    """
+    This test involves repeating a group containing a
+    reference to a rule that is repeated zero or more
+    times. Within that rule, there is a condition
+    allowing the selection of two values. The goal of
+    the test is to verify if the parser can handle
+    the repetition of a group containing a reference
+    to a rule that can be repeated multiple times and
+    has an OR condition, and if it can correctly
+    process the selection condition within that rule,
+    returning the expected result when the input
+    matches the conditions defined in the grammar.
+    """
+    g = Grammar({
+            'or_rule':'(a|b)+'
+            , '__root__':'(z <or_rule>+)'
+        })
+    root_ast = g.ast_builder()
+    root_ast.print_tree()
+    input_data = Input('z b')
+    result:ParseNode = input_data.parse(root_ast)
+    r = result.to_primitive()
+    assert r == {'__root__': ['z b']}
+
 def test_repeat_optional_inside_a_repeat_mandatory_with_right_input():
     """
     We tested a main rule that has a reference that needs
