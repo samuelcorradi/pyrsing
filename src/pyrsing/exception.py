@@ -1,7 +1,7 @@
 class NotMatchException(Exception):
     pass
 
-class NoAlternativesException(Exception):
+class NoAlternativesException(NotMatchException):
     pass
 
 class GrammarSyntaxException(Exception):

@@ -2,7 +2,7 @@
 import pytest
 from pyrsing.grammar import Grammar
 from pyrsing import Input
-from pyrsing.exception import NoAlternativesException
+from pyrsing.exception import NoAlternativesException, NotMatchException
 
 def test_or_node_with_third_option_right():
     # defing gramar with root rule as an option
@@ -25,7 +25,7 @@ def test_or_node_without_a_valid_option(capsys):
     This test checks the behavior of the parser
     when the input does not match any of the
     alternatives defined in the grammar.
-    It expects a NoAlternativesException to be
+    It expects a NotMatchException to be
     raised, and it captures and prints the
     exception message and any output for
     verification.
@@ -38,8 +38,8 @@ def test_or_node_without_a_valid_option(capsys):
     ast_tree = g.ast_builder()
     # define a input equal any of these options
     input_data = Input(' xxx ')
-    # parsing should raise NoAlternativesException because ' xxx ' doesn't match any alternative
-    with pytest.raises(NoAlternativesException) as excinfo:
+    # parsing should raise NotMatchException because ' xxx ' doesn't match any alternative
+    with pytest.raises(NotMatchException) as excinfo:
         ast_tree.parse(input_data)
     print(f"\nException caught: {excinfo.value}")
     captured = capsys.readouterr()
