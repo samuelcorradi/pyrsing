@@ -62,6 +62,11 @@ class SequenceNode(ASTNode):
                 # if is executed, and it's a negation of the rule, it's ok
                 if not self.is_negation:
                     error = item
+                # if there was an error, but it was a negation, advance the input anyway
+                if not isinstance(item, TerminalNode) \
+                    and self.is_negation \
+                        and error is None:
+                    next(input)
             if char is not None:
                 results.append(Token(char))
             """
