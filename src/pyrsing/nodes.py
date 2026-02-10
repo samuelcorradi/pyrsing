@@ -69,41 +69,6 @@ class SequenceNode(ASTNode):
                     next(input)
             if char is not None:
                 results.append(Token(char))
-            """
-            if isinstance(item, TerminalNode) \
-                and not item.is_repeat:
-                char = input.peek()
-                try:
-                    _ = item._parse(input)
-                    # if is executed, but it's a negation of the rule, it throws an error
-                    if self.is_negation:
-                        error = item
-                except NotMatchException as e:
-                    # if is executed, and it's a negation of the rule, it's ok
-                    if not self.is_negation:
-                        error = item
-                results.append(Token(char))
-            elif isinstance(item, TerminalNode):
-                try:
-                    res = item._parse(input)
-                    results.append(res)
-                    # if is executed, but it's a negation of the rule, it throws an error
-                    if self.is_negation:
-                        error = item
-                except NotMatchException as e:
-                    # if is executed, and it's a negation of the rule, it's ok
-                    if not self.is_negation:
-                        error = item
-            elif isinstance(item, ASTNode):
-                try:
-                    res = item._parse(input)
-                    results.append(res)
-                    if self.is_negation:
-                        error = item
-                except NotMatchException:
-                    if not self.is_negation:
-                        error = item
-            """
         if error:
             if self.is_negation:
                 raise NotMatchException(f"Negation sequence matched, which is not allowed.")
