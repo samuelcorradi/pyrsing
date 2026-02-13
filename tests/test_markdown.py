@@ -40,6 +40,8 @@ def rules():
         , 'block_code':'```\n[\n|(!(```))(!\n)*\n]*```'
         , 'ol':'<number>. <paragraph>'
         , 'ul':'- <paragraph>'
+        , 'todo_item':'- \\[( |x)\\] <paragraph>'
+        , 'todo_list':'(<todo_item:>+\n)+'
         , 'list':'((<ul:>|<ol:>)+\n)+'
         , 'hrule':"(\\*\\*\\*\\**|----*|____*)"
         , "bold":"\\*\\*(<text>)\\*\\*|__(<text>)__"
@@ -54,6 +56,45 @@ def rules():
         , 'link':r'\[<link_alt:alt>\]\(<link_url:url>\)'
         , 'image':r'\!\[<link_alt:alt>\]\(<link_url:url>\)'
     }
+
+def test_markdown_todo(rules):
+    """
+    """
+    g = Grammar({
+              'paragraph':rules['paragraph']
+            , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
+            , 'todo_item':rules['todo_item']
+            , 'todo_list':rules['todo_list']
+            , '__root__':'[<todo_list:>|<inline_code:>|<paragraph:>|\n]+'
+        })
+    input_doc = """Paragraph 1
+
+![Minha imagem bonita.](https://www.bing.com/search?pglt=93FORM=ANNTA1&PC=U531)
+
+- [ ] item 1
+- [x] item 2 block 1
+
+
+"""
+    result = parser(g, input_doc)
+    # assert
+    assert result=={
+        '__root__': [
+              {'paragraph': ['Paragraph 1']}
+            , '\n\n'
+            , {'paragraph': ['![Minha imagem bonita.](https://www.bing.com/search?pglt=93FORM=ANNTA1&PC=U531)']}, '\n\n'
+            , {'todo_list': [
+                      {'todo_item': ['- [ ] item 1']}
+                    , '\n'
+                    , {'todo_item': ['- [x] item 2 block 1']}
+                    , '\n'
+                ]}
+            , '\n\n'
+        ]}
 
 def test_markdown_image(rules):
     """
