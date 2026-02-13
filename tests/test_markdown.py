@@ -33,10 +33,12 @@ def rules():
     """
     return {
           'text':'(!\n|__|~~|\\*\\*|_|\\*)+'
-        , 'paragraph':'(<strike:>|<text>|<bold:>|<italic:>|<inline_code:>)+'
-        , 'number':'0|1|2|3|4|5|6|7|8|9'
-        , 'title':'#+ <text>'
-        , 'inline_code':'`(!`|\n)*`'
+        , 'hard_break':r'  \n'
+        , 'quote':r'\> <paragraph>'
+        , 'paragraph':'(<strike:>|<bold:>|<italic:>|<text>|<inline_code:>)+'
+        , 'number':r'0|1|2|3|4|5|6|7|8|9'
+        , 'title':r'#+ <text>'
+        , 'inline_code':r'`(!`|\n)*`'
         , 'block_code':'```\n[\n|(!(```))(!\n)*\n]*```'
         , 'ol':'<number>. <paragraph>'
         , 'ul':'- <paragraph>'
@@ -46,7 +48,7 @@ def rules():
         , 'hrule':"(\\*\\*\\*\\**|----*|____*)"
         , "bold":"\\*\\*(<text>)\\*\\*|__(<text>)__"
         , "italic":"_(<text>)_|\\*(<text>)\\*"
-        , "strike":"~~(<text>)~~"
+        , "strike":r'~~(<text>)~~'
         , 'tcell':'(!\n|\\|)+'
         , 'trow':'\\|(<tcell:>*\\|)+\n'
         , 'tsep':'\\|((-|:| )+\\|)+\n'
@@ -56,6 +58,65 @@ def rules():
         , 'link':r'\[<link_alt:alt>\]\(<link_url:url>\)'
         , 'image':r'\!\[<link_alt:alt>\]\(<link_url:url>\)'
     }
+
+def test_markdown_hardbreak(rules):
+    """
+    """
+    g = Grammar({
+              'paragraph':rules['paragraph']
+            , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
+            , 'hard_break':rules['hard_break']
+            , '__root__':'[<paragraph:>|\n]+'
+        })
+    input_doc = """Paragraph 1
+
+Paragraph 2  
+
+Paragraph 3
+
+
+"""
+    result = parser(g, input_doc)
+    # assert
+    assert result=={'__root__': []}
+
+
+
+def test_markdown_quote(rules):
+    """
+    """
+    g = Grammar({
+              'paragraph':rules['paragraph']
+            , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
+            , 'quote':rules['quote']
+            , '__root__':'[<quote:>|<paragraph:>|\n]+'
+        })
+    input_doc = """Paragraph 1
+
+> Minha citação **bonita**.
+
+"""
+    result = parser(g, input_doc)
+    # assert
+    assert result=={'__root__': [
+          {'paragraph': ['Paragraph 1']}
+        , '\n\n'
+        , {'quote': [
+                '> '
+                , 'Minha citação '
+                , {'bold': ['**bonita**']}
+                , '.'
+            ]}
+        , '\n\n']}
+
 
 def test_markdown_todo(rules):
     """
