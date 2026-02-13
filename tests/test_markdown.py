@@ -20,7 +20,7 @@ def parser(grammar:Grammar, input_str:str):
     and parse an input string, returning the resulting AST.
     """
     ast_tree = grammar.ast_builder()
-    ast_tree.print_tree()
+    # ast_tree.print_tree()
     input_data = Input(input_str)
     cst_result = ast_tree.parse(input_data)
     result = cst_result.to_primitive()
@@ -32,8 +32,8 @@ def rules():
     """
     """
     return {
-          'text':'(!\n|__|\\*\\*|_|\\*)+'
-        , 'paragraph':'(<text>|<bold:>|<italic:>|<inline_code:>)+'
+          'text':'(!\n|__|~~|\\*\\*|_|\\*)+'
+        , 'paragraph':'(<strike:>|<text>|<bold:>|<italic:>|<inline_code:>)+'
         , 'number':'0|1|2|3|4|5|6|7|8|9'
         , 'title':'#+ <text>'
         , 'inline_code':'`(!`|\n)*`'
@@ -44,12 +44,83 @@ def rules():
         , 'hrule':"(\\*\\*\\*\\**|----*|____*)"
         , "bold":"\\*\\*(<text>)\\*\\*|__(<text>)__"
         , "italic":"_(<text>)_|\\*(<text>)\\*"
+        , "strike":"~~(<text>)~~"
         , 'tcell':'(!\n|\\|)+'
         , 'trow':'\\|(<tcell:>*\\|)+\n'
         , 'tsep':'\\|((-|:| )+\\|)+\n'
         , 'table':'<trow:thead><tsep>(<trow:>+)+'
+        , 'link_alt':r'(!\])+'
+        , 'link_url':r'(!\))+'
+        , 'link':r'\[<link_alt:alt>\]\(<link_url:url>\)'
+        , 'image':r'\!\[<link_alt:alt>\]\(<link_url:url>\)'
     }
 
+def test_markdown_image(rules):
+    """
+    """
+    g = Grammar({
+              'paragraph':rules['paragraph']
+            , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
+            , 'link_alt':rules['link_alt']
+            , 'link_url':rules['link_url']
+            , 'link':rules['link']
+            , 'image':rules['image']
+            , '__root__':'[<image:>|<link:>|<inline_code:>|<paragraph:>|\n]+'
+        })
+    input_doc = """Paragraph 1
+
+![Minha imagem bonita.](https://www.bing.com/search?pglt=93FORM=ANNTA1&PC=U531)
+
+
+"""
+    result = parser(g, input_doc)
+    # assert
+    assert result=={
+        '__root__': [{'paragraph': ['Paragraph 1']},
+        '\n\n',
+        {'image': ['![',
+                {'alt': ['Minha imagem bonita.']},
+                '](',
+                {'url': ['https://www.bing.com/search?pglt=93FORM=ANNTA1&PC=U531']},
+                ')']},
+        '\n\n\n']}
+
+def test_markdown_link(rules):
+    """
+    """
+    g = Grammar({
+              'paragraph':rules['paragraph']
+            , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
+            , 'link_alt':rules['link_alt']
+            , 'link_url':rules['link_url']
+            , 'link':rules['link']
+            , '__root__':'[<link:>|<inline_code:>|<paragraph:>|\n]+'
+        })
+    input_doc = """Paragraph 1
+
+[texto](https://www.bing.com/search?pglt=93FORM=ANNTA1&PC=U531)
+
+
+"""
+    result = parser(g, input_doc)
+    # assert
+    assert result=={
+        '__root__': [{'paragraph': ['Paragraph 1']},
+        '\n\n',
+        {'link': ['[',
+                {'alt': ['texto']},
+                '](',
+                {'url': ['https://www.bing.com/search?pglt=93FORM=ANNTA1&PC=U531']},
+                ')']},
+        '\n\n\n']}
 
 def test_markdown_table(rules):
     """
@@ -59,6 +130,7 @@ def test_markdown_table(rules):
             , 'inline_code':rules['inline_code']
             , 'bold':rules['bold']
             , 'italic':rules['italic']
+            , 'strike':rules['strike']
             , 'text':rules['text']
             , 'trow':rules['trow']
             , 'tcell':rules['tcell']
@@ -108,8 +180,9 @@ def test_markdown_bold_italic(rules):
             , 'inline_code':rules['inline_code']
             , 'bold':rules['bold']
             , 'italic':rules['italic']
+            , 'strike':rules['strike']
             , 'text':rules['text']
-            , '__root__':'[<paragraph:>|<bold:>|<italic:>|\n]+'
+            , '__root__':'[<paragraph:>|<bold:>|<italic:>|<strike:>|\n]+'
         })
     input_doc = """Paragraph 1
 
@@ -117,16 +190,47 @@ Paragraph 2 **bold** and __bold__
 
 Paragraph ❤️ *italic* and _italic_
 
+Paragraph com ~~paralavra riscada~~ no meio do texto.
+
 """
     result = parser(g, input_doc)
     # assert
-    # assert result=={'__root__':[{'paragraph': ['Paragraph 1']}, '\n\n', {'paragraph': ['Paragraph 2']}, '\n', {'paragraph': ['Paragraph ❤️']}]}
+    assert result=={
+        '__root__': [
+            {'paragraph': ['Paragraph 1']},
+            '\n\n',
+            {'paragraph': [
+                'Paragraph 2 ',
+                    {'bold': ['**bold**']},
+                    ' and ',
+                    {'bold': ['__bold__']}
+                ]},
+            '\n\n',
+            {'paragraph': [
+                    'Paragraph ❤️ ',
+                    {'italic': ['*italic*']},
+                    ' and ',
+                    {'italic': ['_italic_']}
+                ]},
+            '\n\n',
+            {'paragraph': [
+                    'Paragraph com ',
+                    {'strike': ['~~paralavra riscada~~']},      
+                    ' no meio do texto.'
+                ]},
+            '\n\n'
+        ]}
 
 def test_markdown_block_code(rules):
     """
     """
     g = Grammar({
               'paragraph':rules['paragraph']
+            , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
             , 'block_code':rules['block_code']
             , '__root__':'[<block_code:>|<paragraph:>|\n]+'
         })
@@ -147,6 +251,10 @@ def test_markdown_hrule(rules):
     g = Grammar({
               'paragraph':rules['paragraph']
             , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
             , 'number':rules['number']
             , 'ol':rules['ol']
             , 'ul':rules['ul']
@@ -186,6 +294,10 @@ def test_markdown_list(rules):
     g = Grammar({
               'paragraph':rules['paragraph']
             , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
             , 'number':rules['number']
             , 'ol':rules['ol']
             , 'ul':rules['ul']
@@ -249,6 +361,10 @@ def test_markdown_inline_code(rules):
     """
     g = Grammar({
               'paragraph':rules['paragraph']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
             , 'inline_code':rules['inline_code']
             , '__root__':'[<inline_code:>|<paragraph:>|\n]+'
         })
@@ -279,6 +395,11 @@ def test_markdown_title(rules):
     """
     g = Grammar({
               'paragraph':rules['paragraph']
+            , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
             , 'title':rules['title']
             , '__root__':'[<title:>|<paragraph:>|\n]+'
         })
@@ -306,7 +427,12 @@ def test_markdown_paragraph(rules):
     evaluated by the parser.
     """
     g = Grammar({
-            'paragraph':rules['paragraph']
+              'paragraph':rules['paragraph']
+            , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
             , '__root__':'[<paragraph:>|\n]+'
         })
     input_doc = """Paragraph 1
