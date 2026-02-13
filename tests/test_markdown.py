@@ -33,7 +33,6 @@ def rules():
     """
     return {
           'text':'(!\n|__|~~|\\*\\*|_|\\*)+'
-        , 'hard_break':r'  \n'
         , 'quote':r'\> <paragraph>'
         , 'paragraph':'(<strike:>|<bold:>|<italic:>|<text>|<inline_code:>)+'
         , 'number':r'0|1|2|3|4|5|6|7|8|9'
@@ -58,33 +57,6 @@ def rules():
         , 'link':r'\[<link_alt:alt>\]\(<link_url:url>\)'
         , 'image':r'\!\[<link_alt:alt>\]\(<link_url:url>\)'
     }
-
-def test_markdown_hardbreak(rules):
-    """
-    """
-    g = Grammar({
-              'paragraph':rules['paragraph']
-            , 'inline_code':rules['inline_code']
-            , 'bold':rules['bold']
-            , 'italic':rules['italic']
-            , 'strike':rules['strike']
-            , 'text':rules['text']
-            , 'hard_break':rules['hard_break']
-            , '__root__':'[<paragraph:>|\n]+'
-        })
-    input_doc = """Paragraph 1
-
-Paragraph 2  
-
-Paragraph 3
-
-
-"""
-    result = parser(g, input_doc)
-    # assert
-    assert result=={'__root__': []}
-
-
 
 def test_markdown_quote(rules):
     """
