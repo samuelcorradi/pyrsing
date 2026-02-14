@@ -1,33 +1,28 @@
 # Pyrsing
 
-Analise o codigo da pasta que anexo aqui. Eu tenho uma duvida conceitual sobre o caminho que o prgrama deve tomar daqui em diante.
+O módulo Pyrsing foi criado para permitir a operação de _parsing_ de inputs no formato String de acordo com as regras definidas por nós em uma gramática.
 
-Uma vez que meu codigo já consiga criar um AST a partir da gramática e validar um input, eu gostaria que fazer o parser dos trechos do input que correspondam a uma production rule na gramática.
+A motivação para o desenvolvimento deste módulo surgiu diante da necessidade de automatizar a interpretação de códigos SQL a fim de gerar documentações automáticas dos scripts, sem a necessidade de realizar a análise/leitura manual destes códigos.
 
-Se na gramática esteja indicado (), isso quer dizer um agrupamento, entao o conteúdo no input neste trecho deverá está agrupado. Se o conteúdo do input for validado dentro de uma production rule (que aparece como <nome da rule>), o conteúdo do input que corresponde a esta regra também deverá ficar destacado, indicado a regra (production rule) que o destaca.
+A ideia é que, através da definição das regras que definem uma sintaxe SQL válida, através de uma gramática, o Pyrsing fosse ser capaz de "_interpretar_" o input, gerando no final uma estrutura de dados que indique nomes de tabelas, colunas, se há join, etc.
 
-Minha duvida conceitual é, como representar o conteúdo resultante do parser? Eu poderia obter os resultados na forma de primitivos Python, com tudo em uma lista, grupos "()" aparecendo como listas dentro da lista [], e as production rules aparecendo como dicionarios, onde a chave é o nome da production rule e o valor um array, seguindo a lógica. 
-
-Outra alternativa seria representar o resultado na forma de uma hierarquia, tal qual o AST, com objetos sendo usados para representar os valores. Mas nao sei se isso iria complicar. 
-
-Tendo os conhecimentos sobre parser e conhecimento na criação de compiladores, qual a estrutura de dados resultante da operação de parser?
-
-Eu poderia pergar o conteúdo resultante, analisar ele, otimizar alguma coisa, passar como parametro para classes externas que façam uso da informação extraída, etc.
-
-
-
-
-
-
-O módulo Pyrsing foi criado para permitir a operação de parsing de inputs no formato String de acordo com as regras definidas em uma gramática.
-
-A motivação para o desenvolvimento deste módulo surgiu diante da necessidade de automatizar a interpretação de códigos SQL a fim de gerar documentações automáticas dos scrips sem a necessidade de realizar a análise e leitura manual destes códigos. Bastando definir a gramática da linguagem SQL, o Pyrsing deveria ser capaz de gerar uma estrutura de dados que indique o nome das tabelas, colunas, se há join, etc. Tudo aquilo que possui uma regra gramatical é destacado para que podessa ser utilizado.
+A operação de parser utiliza o conjunto de regras para tratar o input, fazendo distinção no seu conteúdo entre as estruturas indicadas pelas regras da gramática e, assim, possamos ter acesso as partes do input inicial para que permita o análise/uso posterior destes componentes extraídos da forma que o programador desejar. Tal qual fazemos com expressões regulares.
 
 O módulo Pyrsing não gera documentações automaticas, ou sequer faz a análise dos códigos, mas ele é capaz de interpretar os trechos de um input que se enquadram em regras específicas, previamente criadas na forma de uma gramática, para que seja possível extrair do input os valores relevantes que permitam posteriormente a realização de análises sintática automáticas devido a categorização dos valores do input de acordo com cada regra da gramática usada.
 
-Ou seja, Pyrsing faz apenas do parser do código, destacando dele as partes que permitiram a leitura ou analise posterior destes componentes da forma que o programador desejar. Posteriormente isso ficará mais claro quando apresentarmos alguns exemplos.
+**Mas e as expressões regulares?**
 
-Para a utilização do Pyrsing, é necessário utilizar dois componentes principais: (1) o código na forma de String que se deseja realizar o parser (interpretar e capturar elementos desejados) chamado **Input** e (2) uma **gramática** definida pelo usuário para o Pyrsing a utilize para interpretar o input fornecido.
+Podemos com as expressões regulares analisar inputs, valida-los de acordo com as regras indicadas pela expressão, e extrair as partes que nos interessa caso o formato do input seja válido. Sendo assim, por que não utilizar apenas expressões regulares?
+
+Bem, expressões regulares são muito úteis em vários casos, mas quando se precisa dinamismo na interpretação de inputs em um ambiente pouco controlado, elas se mostram pouco flexíveis.
+
+Nos casos que precisamos interpretar inputs extensos, como os comandos de uma linguagem inteira, comandos estes podendo ser fornecidos de forma pouco previsível (como em um ficheiro com os comandos do tipo DML, DDL, etc. aparecendo todos juntos), seria preciso criar inúmeras expressões regulares para interpretar os possíveis comandos.
+
+Ao invés de criar-mos uma série de expressões regulares exóticas, o módulo Pyrsing procura fornecer um meio simplificado para que possamos criar as regras que deverão ser usadas para interpretar os inputs definindo regras gramáticais poderosas através de poucos operadores básicos.
+
+**Componentes básicos**
+
+A utilização do Pyrsing consiste em utilizar dois componentes principais: (1) o **Input**, que é o valor na forma de String em que desejamos realizar o parser (interpretar e capturar elementos desejados), e (2) uma **gramática**, que é o conjunto de regras definida pelo usuário que serão utilizadas pelo módulo para interpretar o input fornecido.
 
 
 
@@ -41,17 +36,17 @@ Para a utilização do Pyrsing, é necessário utilizar dois componentes princip
 
 # Gramática
 
-Quando recebemos um input, seja uma frase, um trecho de uma linguagem SQL, ou a definição de uma classe Java, para o computador ele é tão somente uma sequencia de caracteres. Para que o input seja interpretado, ele precisa ter algum sentindo, este sentido é dado através da gramática.
+Quando recebemos um input (seja uma frase, um trecho de uma linguagem SQL, ou a definição de uma classe Java, etc.) para o computador ele é tão somente uma sequencia de caracteres. Para que o input seja "interpretado", ele precisa ter algum sentindo, este sentido é dado através da gramática.
 
-A gramática é o nome dado a regra ou conjunto de regras que, quando são submetidas ao input, diz a quais regras o input obdece e, assim, sabemos interpretá-lo. É a aplicação das regras sobre o input que dá significado semântico ao que, inicialmente, era apenas uma sequencia de caracteres.
+A gramática é o nome dado a regra ou conjunto de regras que, quando submetidas ao input, dizem quais as regras o input obdece e, assim, sabemos interpretá-lo. É a aplicação das regras sobre o input que dá significado semântico ao que, inicialmente, era apenas uma string.
 
-Pegue por exemplo uma frase qualquer. Se já conhecermos as regras que ditam a comunicação, a frase não teria sentido algum. Justamente por que samos as regras do nosso idioma conseguimos interpretar em uma frase o que é o sujeito, o verbo, o tempo verbal, etc.
+Pegue por exemplo uma frase qualquer, seja qual for o seu idioma nativo. Justamente por que sabes as regras do vosso idioma, consegues interpretar em uma frase, o que é o sujeito, o verbo, o tempo verbal, etc. 
 
-Já tentaste interpretar uma sequencia de caracteres japoneses sem ter o conhecimento das regras que definem a comunicação entre os japoneses?
-
-A utilização de uma sintaxe básica que nos permita criar gramáticas variádas é que faz o módulo ser especial. Como podemos definir diferentes gramáticas, podemos utilizar o módulo pyrfois para interpretar um grande número de linguagens computacionais, desde que a gramática que define essa linguagem (ou código computacional) seja fornecido juntamente com o código a ser analisado. Podemos utilizar a sintaxe básica para criar novas gramáticas, definindo novas linguagens.
+Se não conhecermos as regras que ditam a comunicação, as frases passam a não ter sentido algum. Já tentaste interpretar uma sequencia de caracteres japoneses sem ter o conhecimento das regras que definem a comunicação entre os japoneses? Este é o poder em conhecer a gramática que valida um input.
 
 **Sintaxe para construção de gramáticas (operadores)**
+
+A utilização de uma _sintaxe_ básica que nos permita criar gramáticas variadas é que faz o módulo ser especial. Como podemos definir diferentes gramáticas, podemos utilizar o módulo Pyrsing para interpretar um grande número de inputs, desde que a gramática o define seja fornecido juntamente com o que deve ser analisado.
 
 As gramáticas são definidas através de uma sintaxe básica, simples, com a utilização de caracteres reservados que indicam as operações que podem ser feitas para validar o input. Vamos chamar estes caracteres de **operadores gramáticais**.
 
@@ -88,19 +83,7 @@ Dessa forma, se o input for `raca`, `*aca`, `.aca`, `$aca`, etc., não importa, 
 
 Utilizamos este operador quando queremos dar liberdade ao input, já que não pode-se definir a priori o que se espera em determinada posição.
 
-### Escape
-
-Como utilizamos caracteres para indicar as operações gramáticais, nem todos os caracteres indicados na gramática serão utilizados como um operador literal. Tome por exemplo o `.` (ponto) que é usado para indicar "qualquer caractere". Se utilizamos um ponto como operador para construir a gramática, como podemos fazer para exigir que o input tenha realmente um "ponto" em determinada posição?
-
-A solução para isso é o caracter `\` (barra) na nossa gramática. O operador "ponto" irá indicar na gramática que o caracter a sua direita, seja ele qual for e não importa se ele seja um dos operadores básicos da gramática, ele deverá ser interpretado como um literal.
-
-Se nossa gramática for definica como `\.asa` estamos a dizer que o "ponto" deve ser um ponto literal, e não se comportar como o operador coringa. Sendo assim, apenas o input `.asa` será considerado válido. Pois a gramática, com o ponto escapado, está a dizer que espera um ponto literal no local definido.
-
-Devemos utilizar o operador `\` de escape sempre que precisarmos que um caracter que seja usado como operador seja considerado como um caracter literal no momento da validação de um input. 
-
-Se precisamos utilizar uma barra como literal, então nossa gramática deve indicar isso com a utilização de duas barras `\\`. A mais a esqueda funcionando como um operador de escape para a barra a direita ser interpretada como uma barra, literalmente.
-
-#### Condição OU
+### Condição OU
 
 As vezes precisamos que nossa gramática seja mais flexível, dando mais de uma única opções de input. Para isso temos um operador que funciona como um "OU", e é expresso na forma de um caracter `|` (pipe).
 
@@ -112,7 +95,7 @@ Se quisermos dar mais opções basta adicionar outro `|` a definição da gramá
 
 Devemos utilizar o operador OU quando não sabemos exatamente o que será utilizado no input, mas sabemos de antemão as alternativas que sejam válidas.
 
-#### Operador opicional
+### Operador opicional
 
 Quando nossa gramática precisa flexível ao ponto de dar a opção de um valor ser usado ou não, devemos colocar estes valores entre `[ ]` (colchetes). Este operador irá considerar como opicional tudo que está dentro das chaves, funcionando como um agrupamento de coisas opicionais.
 
@@ -123,7 +106,7 @@ Por exemplo: suponha-se que a gramática seja definida como `Hello[ World]`. O q
 
 Este operador deve ser utilizado sempre nosso input possa adicionar uma informação que, caso ela não esteja, não seja o suficiente para considerar o input como inválido.
 
-#### Operador de repetição
+### Operador de repetição
 
 Suponha-se que queres indicar através das gramática uma regra que indique que deva haver a repetição de algum elemento no input. Fazemos isso através do(s) operadore(s) de repetição que indicam que o elemento logo a sua esquerda repita. Temos três operadores diferentes para indicar repetição:
 
@@ -164,7 +147,7 @@ Já se a gramática indicar a repetição como `Vou ca{5}ir`, o inputs válidos 
 
 Apenas o input acima seria considerado válido pois só ele atende a regra indicada pelo operador `{5}`: que o elemento a esquerda do operado repita e repita exatamente 5 (cinco) vezes. Quais quer outros inputs não seriam válidos.
 
-#### Agrupamento
+### Agrupamento
 
 Podemos utilizar `( )` (parenteses) para agrupar uma sequencia operadores e literais em nossa sintaxe. Dessa forma os elementos agrupados funcionarão como uma sub-regra dentro da nossa gramática e podemos aplicar operadores sobre esta sub-regra.
 
@@ -184,11 +167,11 @@ Como podes ver, o caracter `a` sempre se repete conforme indicado mas a sequenci
 
 Em resumo, o operador de agrupamento deve ser utilizado quando queremos considerar uma sequencia de operadores e literais como uma entidade única, para que se submetam todas elas a uma determinada regra.
 
-#### Operador de regra
+### Operador de regra
 
 Enquanto o operador de agrupamento (`( )`) nos permite definir uma sequencia de literais e operadores como uma regra unificada, as vezes queremos fazer o mesmo, mas de forma modular para que as regras possam ser reaproveitadas em diferentes locais na sintaxe. Temos uma solução para isso através do operador de regra `< >`.
 
-#### Operador de Negação
+### Operador de Negação
 
 As vezes não queremos definir o que nosso input deve ter, mas o quê ele NÃO deve ser. Para estes casos temos o operador `!` (exclamação). O que este operador faz é inverter o resultado da avalição do input em comparação com a sintaxe.
 
@@ -212,75 +195,76 @@ Podemos também indicar a negação de uma regra que esteja sendo definida atrav
 
 Para utilizar o caracter **!** (exclamação) como um _literal_, é preciso utilizar antes dele o Operador de Escape.
 
+**Exemplo de uso**
 
-
-
-
-
-
-
-
-# Exemplo sintaxe básica
-
-Como descrito na sessão de introdução, a **Gramática** é o componenete necessário para que o módulo Pyrsing seja capaz de interpretar o input fornecido. A sintaxe deve ser criada pelo usuário, através de uma série de caracteres especiais que funcionam como operadores e caracteres literais. É a utilização dos operadores que nos permitem elaborar as regras (Gramática) que permitirá que o módulo Pysing "leia" o input e consiga separar os diferentes elementos de acordo com as regras semânticas definidas pela gramática utilizada.
-
-O módulo Pyrsing já vem com a gramática para interpretação de códigos T-SQL. Sendo assim, para interpretar um código SQL, não é necessário definir ou criar uma nova gramática, bastando tão somente importar e utilizar a sintaxe que acompanha o módulo:
+No exemplo abaixo vemos que a regra raiz (`__root__`) indica que o input, na parte indicada dentro do agrupamento, não pode ter terminais com a letra `a`.
 
 ```python
-from pyrsing.grammars.sql import tsql as grammar # gramatica T-SQL
-from pyrsing.token import Tokenize
-from pyrsing import parser
-from pyrsing.utils import Token
+from pyrsing.grammar import Grammar
+from pyrsing import Input
+from pyrsing.token import TokenSequence
 
-if __name__=="__main__":
-    command = """
-    SELECT aaaa, bbb FROM ab_aa AS b, aa WHERE 3;
-    
-    UPDATE bb SET;"""
-    rule = "__root__"
-    token = Token(rule=rule)
-    tk2 = Tokenize(grammar=grammar
-                   , definition=grammar[token.rule]
-                   , token=token)
-    tk2.process()
-    psr = parser.Parser(command=command
-                         , token=token
-                         , exclude_text=False
-                         , ignore_spaces=True
-                         , show_alltokens=False)
-    result = psr.process()
-    print(result)
+g = Grammar({
+        '__root__':'a (!aaa)'
+    })
+
+root_ast = g.ast_builder()
+input_data = Input('a zzz')
+result:TokenSequence = root_ast.parse(input_data)
+print(result.to_primitive())
 ```
 
-Note que no código acima utilizamos a variável `grammar` para indicar a gramática a ser utilizada pela classe `Tokenize` (classe responsável por converter a sintaxe na estrutura que será utilizada, posteriormente, para haviliar o comando). O nome da variável `grammar` é um alias da variável `tsql`, pertencente ao módulo `pyrsing.grammars.sql`, importada no início do código. A variável `tsql` é do tipo dicionário (`dict`). Observe o conteúdo dela abaixo:
+Como nosso input indica `zzz` na parte onde temos uma negação (`(!aaa)`) a interpretação é válida e o resultado esperado são os valores detacados:
 
 ```python
-from pyrsing.grammars.common import common
-
-tsql = {**{
-      "operators":"%|\\|+|-|*|="
-    , "objname":"<alpha>|_"
-    , "tablename":"<alpha><objname>*[ [AS ]<objname>+]"
-    , "tables":"{tablename}[, {tablename}]*"
-    , "string":"'<objname>*'"
-    , "valores":"<string>|<numbers>|<objname>"
-    , "operation":"(<valores>*)[<operators>(<valores>*)]"
-    , "expression":"<operation>[ (AND|OR) (<operation>)]*"
-    , "multiexpression":"{expression}[, {expression}]*"
-    , "selecao":"\\*|<multiexpression>"
-    , "join":"JOIN <tablename> ON 1=1"
-    , "select":"SELECT {selecao} [FROM {tables}[ WHERE 3]][;]"
-    , "update":"UPDATE {tablename} SET[;]"
-    , "void":"[ | |\n]*"
-    , "__root__":"{select}|{update}"
-}, **common}
+{'__root__': ['a ', ['zzz']]}
 ```
 
+Quando indicamos o input como `'a aaa'`, como estamos a indicar valores que estão sendo indicados como "proibidos" pelo operador de negação, o resultado da execução é uma exceção:
 
+```
+pyrsing.exception.NotMatchException: Negation sequence matched, which is not allowed.
+```
 
-# Configurando ambiente de desenvolvimento
+### Operador de Escape
 
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned
+Como utilizamos caracteres para indicar as operações gramáticais, nem todos os caracteres indicados na gramática serão utilizados como um operador literal. Tome por exemplo o `.` (ponto) que é usado para indicar "qualquer caractere". Se utilizamos um ponto como operador para construir a gramática, como podemos fazer para exigir que o input tenha realmente um "ponto" em determinada posição?
 
-python.exe -m pip install --upgrade pip
+A solução para isso é o caracter `\` (barra) na nossa gramática. O operador "ponto" irá indicar na gramática que o caracter a sua direita, seja ele qual for e não importa se ele seja um dos operadores básicos da gramática, ele deverá ser interpretado como um literal.
 
+Se nossa gramática for definica como `\.asa` estamos a dizer que o "ponto" deve ser um ponto literal, e não se comportar como o operador coringa. Sendo assim, apenas o input `.asa` será considerado válido. Pois a gramática, com o ponto escapado, está a dizer que espera um ponto literal no local definido.
+
+Devemos utilizar o operador `\` de escape sempre que precisarmos que um caracter que seja usado como operador seja considerado como um caracter literal no momento da validação de um input. 
+
+Se precisamos utilizar uma barra como literal, então nossa gramática deve indicar isso com a utilização de duas barras `\\`. A mais a esqueda funcionando como um operador de escape para a barra a direita ser interpretada como uma barra, literalmente.
+
+**Exemplo de uso**
+
+O Operador de Negação consiste na utilização do caracter `!` (exclamação). Assim, se precisarmos definir o uso da exclamação como um literal (e não um operador) precisamos usar o Operador de Escape antes dele.
+
+```python
+from pyrsing.grammar import Grammar
+from pyrsing import Input
+from pyrsing.token import TokenSequence
+
+g = Grammar({
+        '__root__':'Hello\\!'
+    })
+
+ast_tree = g.ast_builder()
+input_value = Input('Hello!')
+result:TokenSequence = ast_tree.parse(input_value)
+print(result.to_primitive())
+```
+
+Como utilizamos o operador de escape `\` (barra invertida) para indicar que `!` (exclamação) deve ser interpretado como um **literal**, o resultado da execução do código será:
+
+```python
+{'__root__': ['Hello!']}
+```
+
+Se não definirmos a regra como `'__root__':'Hello!'`, sem utilizar o **Operador de Escape**, o caracter de exclamação será interpretador como um **Operador de Negação**. O resultado da execução resultaria em uma exceção pois operadores de negação só podem ser usados como sendo o **primeiro caracter** de uma regra:
+
+```
+Exception: Negation can only be indicated at position 0. Use escape '\!' to include it as literal.
+```
