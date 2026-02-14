@@ -478,12 +478,14 @@ def test_markdown_list(rules):
             , 'strike':rules['strike']
             , 'text':rules['text']
             , 'number':rules['number']
+            , 'indent':rules['indent']
             , 'ol':rules['ol']
             , 'ul':rules['ul']
-            , 'indent':rules['indent']
-            , 'ol_item':rules['ol_item']
-            , 'ul_item':rules['ul_item']
-            , 'sublist':rules['sublist']
+            , 'item':rules['item']
+            , 'l4_sublist':rules['l4_sublist']
+            , 'l3_sublist':rules['l3_sublist']
+            , 'l2_sublist':rules['l2_sublist']
+            , 'l1_sublist':rules['l1_sublist']
             , 'list':rules['list']
             , '__root__':'[<inline_code:>|<list:>|<paragraph:>|\n]+'
         })
@@ -513,16 +515,18 @@ Paragraph ❤️
             , {'ul': ['- item 2']}
             , '\n'
             , {'ul': ['- item 3']}
+            , '\n'
             ]}
-        , '\n\n'
+        , '\n'
         , {'list': [
               {'ol': ['1. item 1']}
             , '\n'
             , {'ol': ['1. item 2']}
             , '\n'
             , {'ol': ['1. item 3']}
+            , '\n'
             ]}
-        , '\n\n'
+        , '\n'
         , {'paragraph': ['# Title 1']}
         , '\n'
         , {'paragraph': ['Paragraph ❤️']}
