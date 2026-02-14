@@ -171,6 +171,56 @@ Em resumo, o operador de agrupamento deve ser utilizado quando queremos consider
 
 Enquanto o operador de agrupamento (`( )`) nos permite definir uma sequencia de literais e operadores como uma regra unificada, as vezes queremos fazer o mesmo, mas de forma modular para que as regras possam ser reaproveitadas em diferentes locais na sintaxe. Temos uma solução para isso através do operador de regra `< >`.
 
+O operador de regra permite criar **regras nomeadas** que podem ser referenciadas em outras regras, tornando a gramática modular e reutilizável. As regras são definidas em um dicionário e referenciadas usando a sintaxe `<nome_da_regra>`.
+
+**Sintaxe básica:**
+
+```python
+g = Grammar({
+    'numero': '0|1|2|3|4|5|6|7|8|9',
+    'digitos': '<numero>+',
+    '__root__': '<digitos>'
+})
+```
+
+Neste exemplo, definimos uma regra `numero` que aceita qualquer dígito, e uma regra `digitos` que referencia `<numero>` e indica que deve repetir pelo menos uma vez.
+
+**Alias para captura de valores:**
+
+É possível dar um **alias** (apelido) para uma regra referenciada, permitindo identificar e capturar valores específicos no resultado do parsing. A sintaxe é `<nome_da_regra:alias>`.
+
+```python
+g = Grammar({
+    'numero': '0|1|2|3|4|5|6|7|8|9',
+    'operacao': '<numero:esquerda> + <numero:direita>',
+    '__root__': '<operacao>'
+})
+```
+
+No resultado do parsing, os valores capturados aparecerão com as chaves `esquerda` e `direita`, facilitando a identificação.
+
+**Agrupamento sem alias customizado:**
+
+Para agrupar uma regra no resultado sem dar um alias específico, use `<regra:>` (com dois pontos mas sem nome). Isso agrupa os valores sob o nome original da regra.
+
+**Regras recursivas:**
+
+O Pyrsing suporta **gramáticas recursivas** através de um sistema de cache interno. Regras podem referenciar a si mesmas direta ou indiretamente:
+
+```python
+g = Grammar({
+    'lista': '- <texto>[ <lista>]',  # Uma lista pode conter outra lista
+    'texto': '(!\n)+',
+    '__root__': '<lista>'
+})
+```
+
+O cache garante que regras recursivas sejam construídas apenas uma vez, evitando loops infinitos durante a construção da árvore AST.
+
+**Regra obrigatória `__root__`:**
+
+Toda gramática **deve** conter uma regra especial chamada `__root__` que define o ponto de entrada para o parsing. Esta é a primeira regra avaliada quando processamos um input.
+
 ### Operador de Negação
 
 As vezes não queremos definir o que nosso input deve ter, mas o quê ele NÃO deve ser. Para estes casos temos o operador `!` (exclamação). O que este operador faz é inverter o resultado da avalição do input em comparação com a sintaxe.
@@ -217,7 +267,7 @@ print(result.to_primitive())
 Como nosso input indica `zzz` na parte onde temos uma negação (`(!aaa)`) a interpretação é válida e o resultado esperado são os valores detacados:
 
 ```python
-{'__root__': ['a ', ['zzz']]}
+{'__root__': ['a zzz']}
 ```
 
 Quando indicamos o input como `'a aaa'`, como estamos a indicar valores que estão sendo indicados como "proibidos" pelo operador de negação, o resultado da execução é uma exceção:
@@ -267,4 +317,165 @@ Se não definirmos a regra como `'__root__':'Hello!'`, sem utilizar o **Operador
 
 ```
 Exception: Negation can only be indicated at position 0. Use escape '\!' to include it as literal.
+```
+
+---
+
+# Classes principais
+
+## Grammar
+
+A classe `Grammar` é responsável por construir a árvore AST (Abstract Syntax Tree) a partir das regras gramaticais definidas.
+
+**Uso:**
+
+```python
+from pyrsing.grammar import Grammar
+
+g = Grammar({
+    'numero': '0|1|2|3|4|5|6|7|8|9',
+    '__root__': '<numero>+'
+})
+
+ast_tree = g.ast_builder()  # Constrói a árvore AST
+```
+
+**Método `ast_builder()`:**
+
+O método `ast_builder()` processa todas as regras definidas e retorna uma árvore AST que pode ser usada para fazer o parsing de inputs. Este método pode ser chamado múltiplas vezes no mesmo objeto `Grammar` - a cada chamada, a árvore é reconstruída do zero, garantindo que não haja contaminação entre diferentes usos.
+
+**Sistema de cache interno:**
+
+A classe `Grammar` implementa um sistema de cache que:
+- Evita reconstrução redundante de regras já processadas
+- Suporta gramáticas recursivas sem causar loops infinitos
+- É reinicializado automaticamente a cada chamada de `ast_builder()`
+
+## Input
+
+A classe `Input` encapsula a string que será parseada e mantém o estado da posição atual durante o processamento.
+
+**Uso:**
+
+```python
+from pyrsing import Input
+
+input_data = Input('12345')
+result = ast_tree.parse(input_data)
+```
+
+**Métodos principais:**
+
+- `peek()` - Retorna o caractere na posição atual sem avançar
+- `next()` - Retorna o caractere atual e avança para o próximo
+- `get_pos()` - Retorna a posição atual no input
+- `set_pos(i)` - Define a posição atual
+- `is_eol()` - Verifica se chegou ao fim do input
+- `rewind(i=0)` - Volta para uma posição específica (padrão: início)
+
+## TokenSequence
+
+A classe `TokenSequence` representa um nó da árvore de parsing que contém uma sequência de elementos (tokens ou outras sequências).
+
+**Método `to_primitive()`:**
+
+Converte o resultado do parsing em estruturas Python nativas (dicionários, listas e strings):
+
+```python
+result = ast_tree.parse(input_data)
+primitives = result.to_primitive()
+print(primitives)  # {'__root__': ['1', '2', '3', '4', '5']}
+```
+
+## ASTNode
+
+Classe base abstrata para todos os nós da árvore AST. Subclasses incluem:
+
+- `SequenceNode` - Sequência de elementos
+- `OrNode` - Alternativas (operador `|`)
+- `TerminalNode` - Literal único
+- `RepetitionNode` - Elementos repetidos (`*`, `+`, `{n}`)
+- `AnyNode` - Operador coringa (`.`)
+
+**Método `print_tree()`:**
+
+Exibe a estrutura da árvore AST de forma visual no console, útil para debugging:
+
+```python
+ast_tree = g.ast_builder()
+ast_tree.print_tree()  # Imprime a árvore formatada
+```
+
+O método `print_tree()` possui proteção contra ciclos infinitos em gramáticas recursivas e suporta limite de profundidade opcional:
+
+```python
+ast_tree.print_tree()  # Limita a exibição a 5 níveis
+```
+
+---
+
+# Workflow completo de uso
+
+```python
+from pyrsing.grammar import Grammar
+from pyrsing import Input
+
+# 1. define the grammar
+g = Grammar({
+    'number': '0|1|2|3|4|5|6|7|8|9',
+    'operator': r'\+|-|\*|/',
+    'expression': '<number:left> <operator:op> <number:right>',
+    '__root__': '<expression:>'
+})
+
+# 2. build the AST tree
+ast_tree = g.ast_builder()
+
+# 3. (optional) visualize the grammar structure
+ast_tree.print_tree()
+
+# 4. create the input to be parsed
+input_data = Input('5 + 3')
+
+# 5. parse the input
+result = ast_tree.parse(input_data)
+
+# 6. convert to Python structures
+primitives = result.to_primitive()
+print(primitives)
+# Output: {'__root__': [{'expression': [{'left': ['5']}, ' ', {'op': ['+']}, ' ', {'right': ['3']}]}]}
+```
+
+---
+
+## Dicas e boas práticas
+
+**1. Use alias para identificar valores importantes:**
+
+```python
+'comando_sql': 'SELECT <colunas:cols> FROM <tabela:tbl>'
+```
+
+**2. Gramáticas recursivas funcionam naturalmente:**
+
+```python
+'lista_aninhada': '\\[<item>(, <item>)*\\]|<lista_aninhada>'
+```
+
+**3. O operador de negação é útil para "tudo exceto":**
+
+```python
+'string': '"(!")*"'  # Qualquer coisa exceto aspas, dentro de aspas
+```
+
+**4. Combine agrupamento com repetição para padrões complexos:**
+
+```python
+'lista': '<item>(, <item>)*'  # Um item seguido de zero ou mais ", item"
+```
+
+**5. Use `print_tree()` para debugging de gramáticas complexas:**
+
+```python
+ast_tree.print_tree()  # Visualizar estrutura limitada
 ```
