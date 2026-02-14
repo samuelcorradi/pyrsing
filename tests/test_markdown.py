@@ -44,11 +44,13 @@ def rules():
         # list
         , 'ol':'<number>. <paragraph>'
         , 'ul':'- <paragraph>'
-        , 'indent':'  |\t|    '
-        , 'ul_item':'<ul:>[\n<indent>+<sublist:>]' 
-        , 'ol_item':'<ol:>[\n<indent>+<sublist:>]'
-        , 'sublist':'(<ul:>|<ol:>)(\n<indent>+(<ul:>|<ol:>))*'
-        , 'list':'(<ul_item>|<ol_item>)(\n(<ul_item>|<ol_item>))*'
+        , 'item':'<ol:>|<ul:>'
+        , 'indent':'    |  |\t'
+        , 'l4_sublist':'(\n<indent>{4}<item>)+'
+        , 'l3_sublist':'(\n<indent>{3}<item>[<l4_sublist:>])+'
+        , 'l2_sublist':'(\n<indent>{2}<item>[<l3_sublist:>])+'
+        , 'l1_sublist':'(\n<indent><item>[<l2_sublist:>])+'
+        , 'list':'(<item>[<l1_sublist:>]\n)+'
         # horizontal rule
         , 'hrule':"(\\*\\*\\*\\**|----*|____*)"
         , "bold":"\\*\\*(<text>)\\*\\*|__(<text>)__"
@@ -382,12 +384,15 @@ def test_markdown_nested_list(rules):
             , 'indent':rules['indent']
             , 'ol':rules['ol']
             , 'ul':rules['ul']
-            , 'ol_item':rules['ol_item']
-            , 'ul_item':rules['ul_item']
-            , 'sublist':rules['sublist']
+            , 'item':rules['item']
+            , 'l4_sublist':rules['l4_sublist']
+            , 'l3_sublist':rules['l3_sublist']
+            , 'l2_sublist':rules['l2_sublist']
+            , 'l1_sublist':rules['l1_sublist']
             , 'list':rules['list']
             , '__root__':'[<list:>|<paragraph:>|\n]+'
         })
+
     input_doc = """
 - item 1
     1. item 1
@@ -400,23 +405,65 @@ def test_markdown_nested_list(rules):
     result = parser(g, input_doc)
     # assert
     expected_result = {'__root__':[
-        '\n',
-        {'list': [
-                {'ul': ['- item 1']},
-                '\n    ',
-                {'sublist': [
-                        {'ol': ['1. item 1']},
-                        '\n    ',
-                        {'ol': ['1. item 2']},
-                        '\n    ',
-                        {'ol': ['1. item 3']}
-                    ]},
-                '\n',
-                {'ul': ['- item 2']},
-                '\n',
-                {'ul': ['- item 3']}
-            ]},
-            '\n\n'
+              '\n'
+            , {'list': [
+                  {'ul': ['- item 1']}
+                , {'l1_sublist': [
+                        '\n    '
+                        , {'ol': ['1. item 1']}
+                        , '\n    '
+                        , {'ol': ['1. item 2']}
+                        , '\n    '
+                        , {'ol': ['1. item 3']}
+                    ]}
+                , '\n'
+                , {'ul': ['- item 2']}
+                , '\n'
+                , {'ul': ['- item 3']}
+                , '\n'
+            ]}
+            ,'\n'
+        ]}
+    assert result==expected_result
+
+    input_doc = """
+- Level 1 - item 1
+    1. Level 2 - item 1
+        - Level 3 - item 1
+            - Level 4 - item 1
+            - Level 4 - item 2
+        - Level 3 - item 2
+    1. Level 2 - item 2
+- Level 1 - item 2
+
+"""
+    result = parser(g, input_doc)
+    # assert
+    expected_result = {'__root__': [
+              '\n'
+            , {'list': [
+                    {'ul': ['- Level 1 - item 1']}
+                    , {'l1_sublist': ['\n    '
+                    , {'ol': ['1. Level 2 - item 1']}
+                    , {'l2_sublist': [
+                              '\n        '
+                            , {'ul': ['- Level 3 - item 1']}
+                            , {'l3_sublist': [
+                                      '\n            '
+                                    , {'ul': ['- Level 4 - item 1']}
+                                    , '\n            '
+                                    , {'ul': ['- Level 4 - item 2']}
+                                ]}
+                            , '\n        '
+                            , {'ul': ['- Level 3 - item 2']}
+                        ]}
+                    , '\n    '
+                    , {'ol': ['1. Level 2 - item 2']}]}
+                    , '\n'
+                    , {'ul': ['- Level 1 - item 2']}
+                    , '\n'
+                ]}
+                , '\n'
         ]}
     assert result==expected_result
 
