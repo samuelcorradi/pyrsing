@@ -39,11 +39,17 @@ def rules():
         , 'title':r'#+ <text>'
         , 'inline_code':r'`(!`|\n)*`'
         , 'block_code':'```\n[\n|(!(```))(!\n)*\n]*```'
-        , 'ol':'<number>. <paragraph>'
-        , 'ul':'- <paragraph>'
         , 'todo_item':'- \\[( |x)\\] <paragraph>'
         , 'todo_list':'(<todo_item:>+\n)+'
-        , 'list':'((<ul:>|<ol:>)+\n)+'
+        # list
+        , 'ol':'<number>. <paragraph>'
+        , 'ul':'- <paragraph>'
+        , 'indent':'  |\t|    '
+        , 'ul_item':'<ul:>[\n<indent>+<sublist:>]' 
+        , 'ol_item':'<ol:>[\n<indent>+<sublist:>]'
+        , 'sublist':'(<ul:>|<ol:>)(\n<indent>+(<ul:>|<ol:>))*'
+        , 'list':'(<ul_item>|<ol_item>)(\n(<ul_item>|<ol_item>))*'
+        # horizontal rule
         , 'hrule':"(\\*\\*\\*\\**|----*|____*)"
         , "bold":"\\*\\*(<text>)\\*\\*|__(<text>)__"
         , "italic":"_(<text>)_|\\*(<text>)\\*"
@@ -362,6 +368,58 @@ ___
     ]}
     assert result==expected_result
 
+def test_markdown_nested_list(rules):
+    """
+    """
+    g = Grammar({
+              'paragraph':rules['paragraph']
+            , 'inline_code':rules['inline_code']
+            , 'bold':rules['bold']
+            , 'italic':rules['italic']
+            , 'strike':rules['strike']
+            , 'text':rules['text']
+            , 'number':rules['number']
+            , 'indent':rules['indent']
+            , 'ol':rules['ol']
+            , 'ul':rules['ul']
+            , 'ol_item':rules['ol_item']
+            , 'ul_item':rules['ul_item']
+            , 'sublist':rules['sublist']
+            , 'list':rules['list']
+            , '__root__':'[<list:>|<paragraph:>|\n]+'
+        })
+    input_doc = """
+- item 1
+    1. item 1
+    1. item 2
+    1. item 3
+- item 2
+- item 3
+
+"""
+    result = parser(g, input_doc)
+    # assert
+    expected_result = {'__root__':[
+        '\n',
+        {'list': [
+                {'ul': ['- item 1']},
+                '\n    ',
+                {'sublist': [
+                        {'ol': ['1. item 1']},
+                        '\n    ',
+                        {'ol': ['1. item 2']},
+                        '\n    ',
+                        {'ol': ['1. item 3']}
+                    ]},
+                '\n',
+                {'ul': ['- item 2']},
+                '\n',
+                {'ul': ['- item 3']}
+            ]},
+            '\n\n'
+        ]}
+    assert result==expected_result
+
 def test_markdown_list(rules):
     """
     """
@@ -375,6 +433,10 @@ def test_markdown_list(rules):
             , 'number':rules['number']
             , 'ol':rules['ol']
             , 'ul':rules['ul']
+            , 'indent':rules['indent']
+            , 'ol_item':rules['ol_item']
+            , 'ul_item':rules['ul_item']
+            , 'sublist':rules['sublist']
             , 'list':rules['list']
             , '__root__':'[<inline_code:>|<list:>|<paragraph:>|\n]+'
         })
@@ -404,17 +466,16 @@ Paragraph ❤️
             , {'ul': ['- item 2']}
             , '\n'
             , {'ul': ['- item 3']}
-            , '\n'
             ]}
-        , '\n'
+        , '\n\n'
         , {'list': [
               {'ol': ['1. item 1']}
             , '\n'
             , {'ol': ['1. item 2']}
             , '\n'
             , {'ol': ['1. item 3']}
-            , '\n']}
-        , '\n'
+            ]}
+        , '\n\n'
         , {'paragraph': ['# Title 1']}
         , '\n'
         , {'paragraph': ['Paragraph ❤️']}
@@ -453,7 +514,7 @@ Paragraph ❤️
     # assert
     expected_result = {'__root__': [{'paragraph': ['Paragraph 1']}, '\n\n', {'paragraph': ['# Title 1']}, '\n', {'paragraph': ['Paragraph ❤️']}, '\n\n', {'inline_code': ['`Code block 1`']}, '\n']}
     assert result==expected_result
-    
+
 def test_markdown_title(rules):
     """
     Headings are basically a paragraph that starts

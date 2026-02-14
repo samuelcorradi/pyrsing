@@ -18,6 +18,8 @@ class Grammar:
         self.root:SequenceNode = SequenceNode('__root__')
         self.literal_buffer = ''
         self.scaped = False
+        self._rule_cache = {}
+        self._processing = set()
 
     def _literal_buffer_flush(self, stack:list):
         if self.literal_buffer and stack:
@@ -161,8 +163,30 @@ class Grammar:
                     alias_name = alias[1:]
                     # if alias is present but empty ("<rule:>"), use the original token_name as grouping key
                     node_name = token_name if alias_name == '' else alias_name
-                new_token = SequenceNode(node_name)
-                seq, _ = self._parse_rule(self.rules[token_name], new_token)
+
+                # Cache: check if this rule was already built or is being built
+                cached_node = self._rule_cache.get(token_name, None)
+
+                if cached_node is not None:
+                    # Rule already processed (or being processed right now).
+                    # Create a new SequenceNode with the requested alias
+                    # and share the children from the canonical cached node.
+                    new_token = SequenceNode(node_name)
+                    new_token.children = cached_node.children
+                else:
+                    # First time seeing this rule.
+                    # Create a canonical node, register it in the cache
+                    # BEFORE processing, so recursive references find it.
+                    canonical_node = SequenceNode(token_name)
+                    self._rule_cache[token_name] = canonical_node
+                    self._processing.add(token_name)
+                    self._parse_rule(self.rules[token_name], canonical_node)
+                    self._processing.discard(token_name)
+
+                    # Build the node the caller asked for (with alias or not)
+                    new_token = SequenceNode(node_name)
+                    new_token.children = canonical_node.children
+
                 i += match.end() - 1
                 if new_token:
                     stack[-1].children.append(new_token)
