@@ -70,7 +70,8 @@ class SequenceNode(ASTNode):
             if char is not None:
                 results.append(Token(char))
         if error:
-            if self.is_negation:
+            if isinstance(error, SequenceNode) \
+                and error.is_negation:
                 raise NotMatchException(f"Negation sequence matched, which is not allowed.")
             else:
                 if isinstance(error, TerminalNode):
