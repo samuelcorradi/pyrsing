@@ -64,6 +64,13 @@ class Grammar:
         return None
 
     def ast_builder(self)->ASTNode:
+        # rest
+        self.root = SequenceNode('__root__')
+        self.literal_buffer = ''
+        self.scaped = False
+        self._rule_cache = {}
+        self._processing = set()
+
         rule_str = self.rules.get('__root__', '')
         if not rule_str:
             raise Exception("Root rule '__root__' not found in grammar.")
