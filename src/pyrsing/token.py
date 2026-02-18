@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional, Union, Dict
+from pyrsing import transformer
 
 @dataclass
 class Token:
@@ -48,6 +49,8 @@ class TokenSequence:
         if buffer:
             result.append(buffer)
         if self.name:
+            if self.name in transformer.registry:
+                return transformer.registry[self.name](result)
             return {self.name: result}
         return result
 
