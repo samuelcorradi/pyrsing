@@ -319,6 +319,62 @@ Se não definirmos a regra como `'__root__':'Hello!'`, sem utilizar o **Operador
 Exception: Negation can only be indicated at position 0. Use escape '\!' to include it as literal.
 ```
 
+## Built-in rules
+
+O Pyrsing disponibiliza um conjunto de regras prontas para uso, chamadas de **built-in rules**. Estas regras cobrem padrões comuns que frequentemente aparecem em gramáticas, evitando que o utilizador precise redefini-las sempre que necessário.
+
+Para utilizá-las, basta importar o dicionário `builtins` do módulo `pyrsing.grammar` e combiná-lo com as suas próprias regras ao instanciar a `Grammar`:
+
+```python
+from pyrsing.grammar import Grammar, builtins
+
+my_rules = {
+    '__root__': '(<space>|<integer:>)+'
+}
+g = Grammar({**builtins, **my_rules})
+```
+
+Ao usar `{**builtins, **my_rules}`, as regras built-in são incluídas na gramática e podem ser referenciadas normalmente com o operador de regra `< >`.
+
+### Regras disponíveis
+
+| Regra | Definição | Descrição |
+|---|---|---|
+| `space` | `' '` | Um único espaço em branco |
+| `breakline` | `'\n'` | Uma quebra de linha |
+| `number` | `'0\|1\|2\|3\|4\|5\|6\|7\|8\|9+'` | Um único dígito numérico (0 a 9) |
+| `integer` | `'<number>+'` | Um número inteiro (um ou mais dígitos) |
+| `decimal` | `'<number>+\.[<number>+]'` | Um número decimal (ex: `3.14`, `42.`) |
+
+### Exemplo de uso
+
+```python
+from pyrsing.grammar import Grammar, builtins
+from pyrsing import Input
+
+my_rules = {
+    '__root__': '(<breakline>|<space>|<decimal:>|<integer:>)+'
+}
+g = Grammar({**builtins, **my_rules})
+
+ast_tree = g.ast_builder()
+result = ast_tree.parse(Input("12\n\n3.14\n"))
+print(result.to_primitive())
+```
+
+Resultado:
+
+```python
+{'__root__': [{'integer': ['12']}, '\n\n', {'decimal': ['3.14']}, '\n']}
+```
+
+Observe que, ao usar o alias vazio (`<decimal:>` e `<integer:>`), os valores capturados aparecem no resultado agrupados sob o nome original da regra (`decimal` e `integer`), enquanto os espaços e quebras de linha sem alias são retornados como strings simples.
+
+
+
+
+
+
 ---
 
 # Classes principais
