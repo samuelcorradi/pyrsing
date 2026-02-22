@@ -176,3 +176,36 @@ Third line.
             , {'third_line':['Third line.']}
             , '\n\n'
         ]}
+
+def test_same_rule_with_different_alias_and_transformations():
+    """
+    In this test we show how the same rule can be called
+    using different aliases and how web can define different
+    transform funcions for each alias.
+    """
+    @on_decorator('word')
+    def _(children: list):
+        print('word', children)
+        return children
+    
+    @on_decorator('as_group')
+    def _(children: list):
+        return {'word':children} # return grouping
+
+    @on_decorator('as_string')
+    def _(children: list):
+        return ''.join(children) # join everything into a string
+
+    g = Grammar({
+          'word': '(!\n| )+'
+        , '__root__': '<word:as_group> <word:as_string>'
+    })
+    input_doc = "Group string"
+    result = parser(g, input_doc)
+    print(result)
+    # assert
+    assert result=={'__root__': [
+              {'word': ['Group']}
+            , ' '
+            , 'string'
+        ]}

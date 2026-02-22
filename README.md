@@ -500,6 +500,93 @@ Sem a transformação registrada, o resultado seria `{'regra': [...]}` contendo 
 - Funções são registradas globalmente no `registry`. Em projetos maiores, certifique-se de que os módulos que contêm os `@on(...)` sejam importados antes de chamar `to_primitive()`.
 - Regras sem alias (`<regra>` sem `:`) não geram `TokenSequence` nomeados e, portanto, não acionam o mecanismo de transformação.
 
+## Pré-requisitos para a transformação
+
+O mecanismo de transformação só é acionado quando a regra é usada com o **operador de regra** (`<>`) de forma agrupada (utilizando **:**) — seja com alias explícito (`<regra:meu_alias>`) ou com alias vazio (`<regra:>`). Regras referenciadas sem agrupamento (`<regra>`) não geram um nó nomeado e, portanto, não acionam nenhuma função registrada.
+
+Em outras palavras: **apenas resultados que estejam agrupados** (seja o nome da regra ou um alias) participam do mecanismo de transformação.
+
+## O que a função recebe e o que substitui
+
+A função de transformação recebe como argumento a **lista de filhos já processados** do nó da regra — ou seja, o que seria o conteúdo interno do dicionário `{'nome_da_regra': [...]}` sem a transformação. O retorno da função substitui completamente esse conteúdo no resultado final.
+
+```python
+# Sem transformação, o resultado seria:
+{'minha_regra': ['filho1', 'filho2']}
+
+# Com transformação registrada para 'minha_regra':
+@on('minha_regra')
+def _(children: list):
+    return ''.join(children)   # retorna uma string simples
+
+# O resultado final passa a ser apenas a string, sem o dicionário:
+'filho1filho2'
+```
+
+## Agrupamento e transformação
+
+Quando uma regra está indicada como agrupada (`<regra:>`), normalmente o resultado seria um dicionário `{'regra': [...]}`. Após passar por uma função de transformação, **o agrupamento é substituído pelo retorno da função**. Se a função retornar uma lista ou string simples, o agrupamento original deixa de existir.
+
+Se quisermos **manter o agrupamento** após a transformação, devemos recriá-lo explicitamente no retorno da função:
+
+```python
+@on('minha_regra')
+def _(children: list):
+    # mantem o agrupamento com o mesmo nome
+    return {'minha_regra': children}
+
+    # ou com um nome diferente
+    return {'novo_nome': children}
+```
+
+O inverso também é verdadeiro: **mesmo que a regra não esteja originalmente agrupada**, podemos usar a transformação para introduzir um agrupamento no resultado, retornando um dicionário:
+
+```python
+@on('minha_regra')
+def _(children: list):
+    # introduz agrupamento que não existia originalmente
+    return {'minha_regra': [''.join(children)]}
+```
+
+Isso permite total flexibilidade na modelagem do resultado, independentemente de como a regra foi declarada na gramática.
+
+## Transformações com alias
+
+Quando uma regra é referenciada com um alias explícito — por exemplo `<minha_regra:outro_nome>` — o nó resultante recebe o nome do **alias**, e não o nome original da regra. Sendo assim, a função de transformação deve ser registrada para o **nome do alias**, e não para o nome original:
+
+```python
+@on('outro_nome')   # registrado para o alias, não para 'minha_regra'
+def _(children: list):
+    ...
+```
+
+Isso permite que **a mesma regra seja chamada em diferentes locais com aliases distintos**, cada um com a sua própria função de transformação:
+
+```python
+from pyrsing.grammar import Grammar
+from pyrsing import Input
+from pyrsing.transformer import on
+
+@on('as_group')
+def _(children: list):
+    return {'word': children}   # mantém como dicionário agrupado
+
+@on('as_string')
+def _(children: list):
+    return ''.join(children)    # colapsa tudo numa string simples
+
+g = Grammar({
+      'word':     '(!\n| )+'
+    , '__root__': '<word:as_group> <word:as_string>'
+})
+
+result = g.ast_builder().parse(Input("Group string")).to_primitive()
+print(result)
+# {'__root__': [{'word': ['Group']}, ' ', 'string']}
+```
+
+A mesma regra `word` é usada duas vezes, mas cada ocorrência tem um alias diferente (`as_group` e `as_string`), com comportamentos de transformação completamente distintos. Isso é especialmente útil quando uma mesma estrutura gramatical precisa ser tratada de formas diferentes dependendo do contexto em que aparece.
+
 
 
 
