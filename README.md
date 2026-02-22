@@ -375,6 +375,146 @@ Observe que, ao usar o alias vazio (`<decimal:>` e `<integer:>`), os valores cap
 
 
 
+# Transformações
+
+O resultado padrão de `to_primitive()` é uma estrutura composta por listas de strings e dicionários, onde cada dicionário corresponde a uma regra capturada com alias (`<regra:>`). Nem sempre esse formato é o ideal — muitas vezes queremos converter um valor numérico para `int`, formatar uma string, substituir caracteres, ou reorganizar a estrutura do resultado.
+
+O módulo `pyrsing.transformer` permite registrar funções associadas ao nome de uma regra. Quando `to_primitive()` encontra um resultado nomeado (`TokenSequence` com `name`) e existe uma função registrada para aquele nome, ela é chamada automaticamente com o conteúdo do resultado, substituindo o retorno padrão.
+
+## Como funciona
+
+O mecanismo é simples: o `registry` é um dicionário onde a chave é o nome da regra e o valor é a função a ser executada. As funções recebem sempre uma `list` com os valores primitivos já processados dos filhos da regra, e retornam o valor transformado — que pode ser qualquer coisa: uma string, um `int`, um `dict`, outro `list`, etc.
+
+```
+Input → Parser → TokenSequence → to_primitive() → [se houver função registrada] → resultado transformado
+```
+
+## Registrando uma função
+
+Use o decorator `@on` importado de `pyrsing.transformer`:
+
+```python
+from pyrsing.transformer import on
+
+@on('numero')
+def _(items: list):
+    return int(''.join(items))
+```
+
+O mesmo pode ser feito sem decorator, passando a função diretamente:
+
+```python
+from pyrsing.transformer import on
+
+on('numero', lambda items: int(''.join(items)))
+```
+
+Ambas as formas produzem o mesmo resultado: ao encontrar um `TokenSequence` com `name='numero'`, `to_primitive()` chamará a função registrada em vez de retornar `{'numero': [...]}`.
+
+## O registry
+
+O `registry` é o dicionário onde todas as funções são armazenadas. Pode ser inspecionado ou manipulado diretamente:
+
+```python
+from pyrsing.transformer import registry
+
+print(registry.keys())   # dict_keys(['numero', ...])
+
+# remover um registro
+del registry['numero']
+
+# verificar se existe
+if 'numero' in registry:
+    print("há uma função registrada para 'numero'")
+```
+
+## Exemplo completo
+
+O exemplo abaixo define uma gramática para Markdown simples — com suporte a **negrito** — e usa uma transformação para substituir o resultado bruto da regra `regra` por uma representação mais limpa:
+
+```python
+from pyrsing.grammar import Grammar
+from pyrsing import Input
+from pyrsing.transformer import on
+
+# Gramática para Markdown simples
+g = Grammar({
+      'text':      '(!\n|__|~~|\\*\\*|_|\\*)+'
+    , 'bold':      '\\*\\*(<text>)\\*\\*|__(<text>)__'
+    , 'italic':    '_(<text>)_|\\*(<text>)\\*'
+    , 'strike':    r'~~(<text>)~~'
+    , 'paragraph': '(<strike:>|<bold:>|<italic:>|<text>)+'
+    , 'regra':     '[<paragraph:>|\n]+'
+    , '__root__':  '<regra:>'
+})
+
+# Transformação registrada para a regra 'regra'
+@on('regra')
+def _(items: list):
+    result = []
+    for item in items:
+        if isinstance(item, dict) and 'paragraph' in item:
+            # simplifica o parágrafo: mantém texto e indica negrito
+            r = []
+            for i in item['paragraph']:
+                if isinstance(i, dict):
+                    if 'bold' in i:
+                        r.append('BOLD')
+                else:
+                    r.append(i)
+            item = {'paragraph': r}
+        elif isinstance(item, str):
+            # converte quebras de linha para tag HTML
+            item = item.replace('\n', '<br />')
+        result.append(item)
+    return result
+
+# Execução
+ast = g.ast_builder()
+input_doc = """Paragraph 1
+
+Minha citação **bonita**.
+
+"""
+result = ast.parse(Input(input_doc)).to_primitive()
+print(result)
+```
+
+Resultado:
+
+```python
+{'__root__': [
+      {'paragraph': ['Paragraph 1']}
+    , '<br /><br />'
+    , {'paragraph': ['Minha citação ', 'BOLD', '.']}
+    , '<br /><br />'
+]}
+```
+
+Sem a transformação registrada, o resultado seria `{'regra': [...]}` contendo todas as quebras de linha como `'\n'` literais e os detalhes internos do negrito expostos como dicionários aninhados. A função de transformação intercepta esse resultado e o converte para o formato desejado pela aplicação.
+
+## Observações
+
+- A função de transformação recebe a lista **já processada** pelos filhos, ou seja, `to_primitive()` já foi chamado recursivamente antes de invocar a função registrada.
+- O retorno da função substitui completamente o valor que seria retornado por `to_primitive()`. Pode retornar qualquer tipo Python.
+- Funções são registradas globalmente no `registry`. Em projetos maiores, certifique-se de que os módulos que contêm os `@on(...)` sejam importados antes de chamar `to_primitive()`.
+- Regras sem alias (`<regra>` sem `:`) não geram `TokenSequence` nomeados e, portanto, não acionam o mecanismo de transformação.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ---
 
 # Classes principais
@@ -396,7 +536,7 @@ g = Grammar({
 ast_tree = g.ast_builder()  # Constrói a árvore AST
 ```
 
-**Método `ast_builder()`:**
+**Método ast_builder():**
 
 O método `ast_builder()` processa todas as regras definidas e retorna uma árvore AST que pode ser usada para fazer o parsing de inputs. Este método pode ser chamado múltiplas vezes no mesmo objeto `Grammar` - a cada chamada, a árvore é reconstruída do zero, garantindo que não haja contaminação entre diferentes usos.
 
